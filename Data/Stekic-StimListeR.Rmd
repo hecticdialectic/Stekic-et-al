@@ -404,7 +404,7 @@ writestimuli <- function(seeds, perseed, condition, subcondition) {
   }
 }
 
-ImageStims <- read.csv("F:/Experiments/Collaborations/Stekic et al/Figures/ChosenImages.csv")
+ImageStims <- read.csv("F:/Experiments/Collaborations/Stekic et al/Repo/Figures/ChosenImages.csv")
 conditions <- c('1', '2', '3A', '3B', '4', '5', '6A', '6B', '7', '8', '9', '10')
 subconditions <- c('J', 'C')
 
