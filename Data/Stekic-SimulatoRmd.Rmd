@@ -26,8 +26,8 @@ Reading in the data
 # So in this case I've taken 40 subjects in each of the 6 conditions and collapsed them into one dataframe
 # we are then going to put different types of fake data into the frame for sample analysis
 library(data.table)
-setwd("F:/Experiments/Collaborations/Stekic et al/Repo/Data/Stimlists/")
-files <- dir("F:/Experiments/Collaborations/Stekic et al/Repo/Data/Stimlists/")
+setwd("F:/Google Drive/Experiments/Collaborations/Stekic et al/Repo/Data/Stimlists/")
+files <- dir("F:/Google Drive/Experiments/Collaborations/Stekic et al/Repo/Data/Stimlists/")
 temp <- lapply(files, fread, sep = "\t")
 AggregatedCSV<- rbindlist(temp)
 AggregatedCSV$RespCorr <- 1
@@ -173,6 +173,9 @@ TrainingResults$SubCondition <- as.factor(TrainingResults$SubCondition)
 TrainingResults$Condition <- as.factor(TrainingResults$Condition)
 TrainingResults$Congruency <- as.factor(TrainingResults$Congruency)
 TrainingResults$CatVsItem  <- as.factor(TrainingResults$CatVsItem)
+
+setwd("F:/Google Drive/Experiments/Collaborations/Stekic et al/Repo/Data/")
+write.csv(TrainingResults, "Simulated Training Results.csv")
 
 ```
 
