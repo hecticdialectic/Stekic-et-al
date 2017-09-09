@@ -41,15 +41,16 @@ Next, I'd like to see some graphical representations of the distributions
 Now, I'd like to see you figure out how to produce the following graph:
 Hint, this makes use of ggplot and specifically facet_wrap
 This also makes use of the melt() command from Reshape
+
 ```{r qqfacet2, echo=FALSE}
-ggplot(SimulatedData, aes(sample = RT.1, colour= Congruency)) + 
-  stat_qq(aes(shape = CatVsItem))+
+ggplot(SimulatedData, aes(sample = RT.1, colour= Congruency)) + #
+  geom_point(stat = "qq", aes(shape = CatVsItem)) +
   ggtitle("qq Plots of Simulated Data by Condition") +
   labs(x="", y="") +
   theme(axis.title.y = element_text(size=12,  color="#666666")) +
   theme(axis.text = element_text(size=8)) +
   theme(plot.title = element_text(size=16, face="bold", hjust=0, color="#666666")) +
-  facet_wrap(~ Condition, ncol = 4)
+  facet_wrap(~ Condition)
 
 ```
 Okay, you might be thinking "Cmon Alan... really? So here is a start"
@@ -151,16 +152,21 @@ MeltedRTData <- melt(SimulatedRTData,
 names(MeltedRTData)[7] <- "Simulation"
 names(MeltedRTData)[8] <- "ReactionTime"
 
+MeltedRTData$Simulation2 <- factor(MeltedRTData$Simulation, 
+                                  level = c("RT.1", "RT.2", "RT.3", "RT.4", "RT.5", "RT.6"),
+                                  labels = c("Random", "BlockRT", "BlockRC", "BlockRTRC", "Condition", "Kat + Vanja"))
+
 ggplot(MeltedRTData, aes(x= Block, y= ReactionTime, colour= Congruency)) + 
   geom_point(aes(shape = CatVsItem), alpha = 0.4, size = 0.4) +
   geom_smooth(aes(colour = Congruency, linetype = CatVsItem),size = 0.8, alpha = 0.4, se = F, method= 'loess', formula =  y~x)+
-  ggtitle("Simulated Reaction Time Data by Condition") +
-  labs(x="Block", y="Reaction Time") +
+  ggtitle("Simulated Reaction Time Data by Simulation") +
+  scale_y_continuous("Reaction Time", breaks = c(0, 500, 1000, 1500), labels = c("0", "500", "1000", "1500"), limits = c(0 , 1500)) +
+  scale_x_continuous("Block", breaks = c(1,2,3,4,5,6,7,8,9), limits = c(1, 9)) +
   coord_cartesian(ylim = c(400, 1000)) +
   theme(axis.title.y = element_text(size=12,  color="#666666")) +
   theme(axis.text = element_text(size=8)) +
   theme(plot.title = element_text(size=16, face="bold", hjust=0, color="#666666")) +
-  facet_wrap(~ Simulation, ncol = 2) +
+  facet_wrap(~ Simulation2, ncol = 2) +
   theme(strip.text.x = element_text(size = 8, colour = "black"))
 
 
@@ -171,21 +177,27 @@ MeltedCorrectnessData <- melt(SimulatedCorrectnessData,
 names(MeltedCorrectnessData)[7] <- "Simulation"
 names(MeltedCorrectnessData)[8] <- "RespCorr"
 
+MeltedCorrectnessData$Simulation2 <- factor(MeltedCorrectnessData$Simulation, 
+                                  level = c("RespCorr.1", "RespCorr.2", "RespCorr.3", "RespCorr.4", "RespCorr.5", "RespCorr.6"),
+                                  labels = c("Random", "BlockRT", "BlockRC", "BlockRTRC", "Condition", "Kat + Vanja"))
+
 ggplot(MeltedCorrectnessData, aes(x= Block, y= RespCorr, colour= Congruency)) + 
   geom_point(aes(shape = CatVsItem), alpha = 0.4, size = 0.4) +
   geom_smooth(aes(colour = Congruency, linetype = CatVsItem),size = 0.8, alpha = 0.4, se = F, method= 'loess', formula =  y~x)+
-  ggtitle("Simulated Proportion Correctby Condition") +
-  labs(x="Block", y="Proportion Correct") +
-  coord_cartesian(ylim = c(0, 1)) +
+  ggtitle("Simulated Proportion Correct by Simulation") +
+  scale_y_continuous("Proportion Correct", breaks = c(0, 0.25, 0.5, 0.75, 1), labels = c("0", "0.25", "0.5", "0.75", "1"), limits = c(0, 1)) +
+  scale_x_continuous("Block", breaks = c(1,2,3,4,5,6,7,8,9), limits = c(1, 9)) +
   theme(axis.title.y = element_text(size=12,  color="#666666")) +
   theme(axis.text = element_text(size=8)) +
   theme(plot.title = element_text(size=16, face="bold", hjust=0, color="#666666")) +
-  facet_wrap(~ Simulation, ncol = 2) +
+  facet_wrap(~ Simulation2, ncol = 2) +
   theme(strip.text.x = element_text(size = 8, colour = "black"))
 
 ```
 
 Here, you can have a final plot as inspiration- and in this case I'll let you see the code itself as well:
+
+Producing either of these graphs is fine- although obviusly the second one is prettier at lower resolution
 
 ```{r MegaPlot}
 MeltedCorrectnessData$Condition2 <- factor(MeltedCorrectnessData$Condition, 
@@ -193,7 +205,6 @@ MeltedCorrectnessData$Condition2 <- factor(MeltedCorrectnessData$Condition,
                                   labels = c("Category Congruent", "Category Incongruent", "Category Conventional 1", "Category Conventional 2",
                                              "Item Congruent", "Item Incongruent", "Item Conventional 1", "Item Conventional 2",
                                              "Arbitrary Half-Half 1", "Arbitrary Half-Half 2", "Arbitrary- Fully", "No Label"))
-
 
 ggplot(MeltedCorrectnessData, aes(x= Block, y= RespCorr, colour= Congruency)) + 
   geom_point(aes(shape = CatVsItem), alpha = 0.4, size = 0.4) +
@@ -206,10 +217,28 @@ ggplot(MeltedCorrectnessData, aes(x= Block, y= RespCorr, colour= Congruency)) +
   theme(plot.title = element_text(size=16, face="bold", hjust=0, color="#666666")) +
   facet_wrap(Condition2 ~ Simulation, ncol = 6) +
   theme(strip.text.x = element_text(size = 8, colour = "black"))
-  theme(strip.text.y = element_text(size = 8, colour = "black"))
+
+
+
+ggplot(MeltedCorrectnessData, aes(x= Block, y= RespCorr, colour= Congruency)) + 
+  geom_point(aes(shape = CatVsItem), alpha = 0.4, size = 0.4) +
+  geom_smooth(aes(colour = Congruency, linetype = CatVsItem),size = 0.5, alpha = 0.4, se = F, method= 'loess', formula =  y~x)+
+  ggtitle("Simulated Proportion Correct by Condition by Simulation") +
+  scale_y_continuous("Proportion Correct", breaks = c(0, 1), labels = c("0", "1"), limits = c(0, 1)) +
+  scale_x_continuous("Block", breaks = c(1,9), labels = c("1","9"), limits = c(1, 9)) +
+  #theme(axis.title.y = element_text(size=12,  color="#666666")) +
+  theme(axis.text = element_text(size=8)) +
+  theme(plot.title = element_text(size=16, face="bold", hjust=0, color="#666666")) +
+  facet_grid(Condition2 ~ Simulation) +
+  theme(strip.text.x = element_text(size = 8, colour = "black"),
+        strip.text.y = element_text(size = 8, colour = "black", angle = 0),
+        strip.background = element_rect(fill= "#FFFFFF")) 
 
 
 ```
+
+
+
 Note that you won't really be able to see this graph when it is output in the RMD document- you can thus find it in the folder where you can get a good luck at everything that is plotted.
 
 Good luck! Let me know if you get stuck!
