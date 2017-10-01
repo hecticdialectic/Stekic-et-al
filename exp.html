@@ -18,6 +18,7 @@
     <script src='jspsych-5.0.3/plugins/jspsych-categorize.js'></script>
     <script src='jspsych-5.0.3/plugins/jspsych-free-sort.js'></script>
     <script src="jspsych-5.0.3/plugins/jspsych-survey-text.js"></script>
+    <script src="PapaParse-4.3.2/papaparse.js"></script>
     <link href="jspsych-5.0.3/css/jspsych.css" rel="stylesheet" type="text/css"></link>
 
   </head>
@@ -47,6 +48,25 @@ var welcome_block = {
 };
 
 expTimeline.push(welcome_block);
+
+//this loops once no matter if they have the required screen or not, so if they click SPACE two times in a row it proceeds to the instructions...
+var loop_node = {
+  timeline: [welcome_block],
+  loop_function: function() {
+    var wdth = document.documentElement.clientWidth;
+    var hght = document.documentElement.clientHeight;
+    var availWdth = window.screen.availWidth;
+    var availHght = window.screen.availHeight;
+    if (wdth > 900 & hght > 640 ){ //less loops it infinitely...
+      return false; //it's not false when it should be akhdkagdkagkad
+    } else {
+      console.log("height:",hght,"width:",wdth);
+      return true;
+    }
+    }
+};
+
+expTimeline.push(loop_node);
 
 var instructions = {
   type: 'instructions',
@@ -87,18 +107,30 @@ var consent_form = {
   "<p>Ako pristajete da učestvujete u ovom istraživanju molimo Vas da odgovorite potvrdno na sledeće stavke:</p>"
 };
 
-expTimeline.push(consent_form);
+  expTimeline.push(consent_form)
+
 
 var endmessage = '';
 
+//this is just a simple example until I figure functions and other stuff out
+var trial = {
+    type: 'button-response',
+    stimulus: "86-J-0-1.bmp",
+    choices: ['opasan', 'nije opasan'],
+    prompt: "<p class='center-content'>Da li je ovaj mikrob opasan ili nije?</p>"
+};
+
+  expTimeline.push(trial);
+
 var zahvalnica = {
   type: 'survey-text',
-  questions: ["Vas broj indeksa u formatu PS150045"],
+  questions: ["Vaš broj indeksa u formatu PS150045"],
   rows: [1],
   columns: [8],
   preamble: "<p><b>Zahvaljujemo Vam se na učešću u istraživanju.</b></p>" +
 "<p>Ukoliko Vam učešće u ovom istraživanju donosi bodove u sklopu kursa neophodno je da upišete svoj broj indeksa da bismo mogli da Vam uračunamo učešće.</p>" +
-"<p>Ukoliko imate bilo kakvih pitanja u vezi sa istraživanjem možete ih poslati na mejl <a href= 'mailto:katarina.stekic@f.bg.ac.rs' target = '_top'>katarina.stekic@f.bg.ac.rs</a>.</p>"
+"<p>Ukoliko imate bilo kakvih pitanja u vezi sa istraživanjem možete ih poslati na mejl <a href= 'mailto:katarina.stekic@f.bg.ac.rs' target = '_top'>katarina.stekic@f.bg.ac.rs</a>.</p>" +
+"<p>Ukoliko Vas zanima koji je cilj istraživanja koje ste radili možete više o istraživanju pročitati na ovom linku: <a href='http://'PUT-ADRESS-HERE.html' target='_blank'></a>." //I don't have a website to put it online yet
 };
 
 expTimeline.push(zahvalnica);
