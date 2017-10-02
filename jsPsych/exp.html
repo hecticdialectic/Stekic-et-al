@@ -34,6 +34,9 @@
 <script>
 var expTimeline = [];
 
+var trialUrl = "file:///Users/PC/Desktop/Stekic-et-al/jsPsych/fakeforkat.csv";
+console.log(trialUrl);
+
 var welcome_block = {
   type: "text",
   cont_key: ' ',
@@ -112,15 +115,56 @@ var consent_form = {
 
 var endmessage = '';
 
-//this is just a simple example until I figure functions and other stuff out
-var trial = {
-    type: 'button-response',
-    stimulus: "86-J-0-1.bmp",
-    choices: ['opasan', 'nije opasan'],
-    prompt: "<p class='center-content'>Da li je ovaj mikrob opasan ili nije?</p>"
-};
+// Get trial data
+// This uses a callback structure to load the csv with stimuli (because continuing hinges on it being loaded properly, so the callback allows you to do something once loaded)
+// For info on the callback structure, see https://stackoverflow.com/questions/26266459/retrieve-parsed-data-from-csv-in-javascript-object-using-papa-parse
 
-  expTimeline.push(trial);
+  function parseData(url, callBack) {
+      Papa.parse(url, {
+          download: true,
+          dynamicTyping: true,
+          header: true,
+          complete: function(results) {
+              callBack(results.data);
+          }
+      });
+  }
+
+  // Gets trial data from csv, and uses a callback to call the createTrials function
+  parseData(trialUrl, createTrials);
+
+  //This is the function that gets passed to parseData as its callback
+  // cf. https://stackoverflow.com/questions/23667086/why-is-my-variable-unaltered-after-i-modify-it-inside-of-a-function-asynchron
+  function createTrials(data) {
+      data.forEach(function(fakeforkat){
+        if (fakeforkat.TrialNum) {
+            var trial = {
+              trial_data: fakeforkat,
+              type: 'match',
+              trial_index: trialData.TrialNum,
+              inducer_stims: [trialData.Image],
+              concurrent_stims: ['476871664.jpg'],
+              is_html: false,
+              on_finish: function(trial_data){
+                jsPsych.data.addDataToLastTrial({trialNum: fakeforkat.TrialNum});
+              }
+
+            };
+            experiment_timeline.push(trial);
+          }
+        })
+      };
+
+      function saveData(filename, filedata){
+      $.ajax({
+         type:'post',
+         cache: false,
+         url: 'saveData.php',
+         data: {
+           filename: filename,
+           filedata: filedata}
+      });
+      }
 
 var zahvalnica = {
   type: 'survey-text',
