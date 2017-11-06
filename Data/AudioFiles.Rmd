@@ -1,0 +1,101 @@
+---
+titlea "Stekic et al. - Audio File Generation"
+authora "Alan Nielsen"
+datea "November 6, 2017"
+outputa html_document
+---
+
+```{r Loading in the Syllables}
+
+PSyll1 <- c("pa", "paa", "ta", "taa")
+PSyll2 <- c('pa', 'paa', 'ka', 'kaa')
+PSyll3 <- c('ta', 'ka')
+
+SSyll1 <- c("ma", "maa", "na", "naa")
+SSyll2 <- c('ma', 'maa', 'la', 'laa')
+SSyll3 <- c('na', 'la')
+
+C1Syll1 <- c("fa", "faa", "va", "vaa")
+C1Syll2 <- c('fa', 'faa', 'sha', 'shaa')
+C1Syll3 <- c('va', 'sha')
+
+C2Syll1 <- c("sa", "saa", "za", "zaa")
+C2Syll2 <- c('sa', 'saa', 'ha', 'haa')
+C2Syll3 <- c('za', 'ha')
+
+
+```
+
+
+With 4 possibilities for each syllables, this gives 16 possible bisyllabic words of each type.
+
+Sox will only concatenate 2 files together, 
+
+```{r Assembling Bisyllables}
+
+PWS1 <- rep(PSyll1, each = 4)
+PWS2 <- rep (PSyll2, 4)
+PBiSyll <- as.data.frame(cbind(PWS1, PWS2))
+PBiSyll$Word <- paste(PBiSyll$PWS1, PBiSyll$PWS2, sep = '')
+
+SWS1 <- rep(SSyll1, each = 4)
+SWS2 <- rep (SSyll2, 4)
+SBiSyll <- as.data.frame(cbind(SWS1, SWS2))
+SBiSyll$Word <- paste(SBiSyll$SWS1, SBiSyll$SWS2, sep = '')
+
+C1WS1 <- rep(C1Syll1, each = 4)
+C1WS2 <- rep (C1Syll2, 4)
+C1BiSyll <- as.data.frame(cbind(C1WS1, C1WS2))
+C1BiSyll$Word <- paste(C1BiSyll$C1WS1, C1BiSyll$C1WS2, sep = '')
+
+C2WS1 <- rep(C2Syll1, each = 4)
+C2WS2 <- rep (C2Syll2, 4)
+C2BiSyll <- as.data.frame(cbind(C2WS1, C2WS2))
+C2BiSyll$Word <- paste(C2BiSyll$C2WS1, C2BiSyll$C2WS2, sep = '')
+
+rm(C1WS1, C1WS2, C2WS1, C2WS2, PWS1, PWS2, SWS1, SWS2)
+
+colnames(PBiSyll) <- c ("Syll1", "Syll2", "Word")
+colnames(SBiSyll) <- c ("Syll1", "Syll2", "Word")
+colnames(C1BiSyll) <- c ("Syll1", "Syll2", "Word")
+colnames(C2BiSyll) <- c ("Syll1", "Syll2", "Word")
+
+BiSylls <- rbind(PBiSyll, SBiSyll, C1BiSyll, C2BiSyll)
+
+rm(PBiSyll, SBiSyll, C1BiSyll, C2BiSyll)
+
+BiSylls$Command <- paste("sox ", BiSylls$Syll1, ".wav ", BiSylls$Syll2, ".wav ", BiSylls$Word, ".wav", sep = '')
+
+write.csv(BiSylls$Command, "F:/GitHub Repos/Stekic-et-al/Sounds/BiSyllBash.csv", row.names = FALSE)
+
+```
+
+So that will give us our BiSyllables 
+
+Now we need to write our full trisyllabic words, of which there are 128
+
+
+```{r Creating Trisyllables}
+
+
+TriSylls <- as.data.frame(rep(BiSylls$Word, each = 2))
+colnames(TriSylls) <- "Syll12"
+
+TriSylls$Syll3 <- c(rep(PSyll3, 16), rep(SSyll3, 16), rep(C1Syll3, 16), rep(C2Syll3, 16))
+
+TriSylls$Word <- paste(TriSylls$Syll12, TriSylls$Syll3, sep = '')
+
+TriSylls$Command <- paste("sox ", TriSylls$Syll12, ".wav ", TriSylls$Syll3, ".wav ", TriSylls$Word, ".wav", sep = '')
+
+write.csv(TriSylls$Command, "F:/GitHub Repos/Stekic-et-al/Sounds/TriSyllBash.csv", row.names = FALSE)
+
+```
+
+And those do it - now we just use Sox in a directory with the original sound files and run those .csvs as bash scripts, and it will output the concatenated files
+
+
+
+
+
+
+
