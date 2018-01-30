@@ -395,16 +395,30 @@ writestimuli <- function(seeds, perseed, condition, subcondition) {
       
       stimlist <- createstimlist(sampleY,condition, subcondition)
       stimlist <- cbind(Id=paste(seednum, j, sep="-"), stimlist)
-      write.table(stimlist, paste("F:/Experiments/Collaborations/Stekic et al/data/stimlists/",
+      write.table(stimlist, paste("F:/GitHub Repos/Stekic-et-al/Data/Stimlists/Full/",
                                   condition,"-", subcondition,"-", seednum, "-",
-                                  seedval, "-", j, ".csv", sep = ''),
+                                  seedval, "-", j, "-", "Full", ".csv", sep = ''),
                   sep = "\t", row.names = FALSE)
+      
+      
+      trainlist <- subset(stimlist, TrialType == "Training")
+      testlist <- subset(stimlist, TrialType == "Testing")
+      
+      write.table(trainlist, paste("F:/GitHub Repos/Stekic-et-al/Data/Stimlists/Training/",
+                                  condition,"-", subcondition,"-", seednum, "-",
+                                  seedval, "-", j, "-",  "Training", ".csv", sep = ''),
+                  sep = "\t", row.names = FALSE)
+      
+      write.table(testlist, paste("F:/GitHub Repos/Stekic-et-al/Data/Stimlists/Testing/",
+                                  condition,"-", subcondition,"-", seednum, "-",
+                                  seedval, "-", j,  ".csv", sep = ''),
+                  sep = "\t", row.names = FALSE)    
       
     }
   }
 }
 
-ImageStims <- read.csv("F:/Experiments/Collaborations/Stekic et al/Repo/Figures/ChosenImages.csv")
+ImageStims <- read.csv("F:/GitHub Repos/Stekic-et-al/Figures/ChosenImages.csv")
 conditions <- c('1', '2', '3A', '3B', '4', '5', '6A', '6B', '7', '8', '9', '10')
 subconditions <- c('J', 'C')
 
