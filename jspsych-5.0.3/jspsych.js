@@ -506,6 +506,7 @@ var jsPsych = (function() {
       if (keyboardNotAllowed) {
         go();
       } else {
+        DOM_target.html('<div style="text-align: center"><p>Sačekajte dok se eksperiment učita, potom pritisnite na dugme "Launch Experiment"</p><button id="jspsych-fullscreen-btn" class="jspsych-btn">Launch Experiment</button></div>');
         $('#jspsych-fullscreen-btn').on('click', function() {
           var element = document.documentElement;
           if (element.requestFullscreen) {
