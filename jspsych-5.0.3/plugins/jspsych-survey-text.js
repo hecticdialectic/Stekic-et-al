@@ -35,7 +35,7 @@ jsPsych.plugins['survey-text'] = (function() {
     trial = jsPsych.pluginAPI.evaluateFunctionParameters(trial);
 
     // show preamble text
-    display_element.append($('<div>', {
+    display_element.html($('<div>', {
       "id": 'jspsych-survey-text-preamble',
       "class": 'jspsych-survey-text-preamble'
     }));
