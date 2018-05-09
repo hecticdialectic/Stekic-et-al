@@ -26,6 +26,11 @@ jsPsych.plugins['approach-retreat'] = (function(){
     trial.prompt = trial.prompt || '';
     trial.response_ends_trial = (typeof trial.response_ends_trial == 'undefined') ? false : trial.response_ends_trial;
     trial.timing_gap = trial.timing_gap || 0; //how long to wait until the stims are presented
+    trial.block = fakeforkat.Block || 0;
+	trial.block_trial = fakeforkat.BlockTrial || 0;
+	trial.condition = fakeforkat.Condition || 0;
+	trial.label_type = fakeforkat.LabelType || '';
+	trial.subcondition = fakeforkat.SubCondition || ''; 
     
     console.log(trial.trial_type);
 	// don't show label or play sound if trial label is set to none
@@ -178,9 +183,19 @@ jsPsych.plugins['approach-retreat'] = (function(){
 					// save data and start new trial after 1.5 seconds pass
 					var trial_data = {
 						"Id": trial.exp_id,
-						"rt": response_time,
-						"res_keyCode": res_keyCode,
-						"res_corr": res_corr
+						"Rt": response_time,
+						"ResKeyCode": res_keyCode,
+						"ResCorr": res_corr,
+						"TrialType2": trial.trial_type,
+						"Image": trial.stimulus,
+						"Label": trial.label,
+						"Location": trial.location,
+						"CorrectResponse": trial.correct_response,
+						"Block": trial.block,
+						"BlockTrial": trial.block_trial,
+						"Condition": trial.condition,
+						"LabelType": trial.label_type,
+						"Subcondition": trial.subcondition
 					};
 					// show next
 					jsPsych.finishTrial(trial_data);
@@ -195,3 +210,4 @@ jsPsych.plugins['approach-retreat'] = (function(){
 
   return plugin;
 })();
+

@@ -99,14 +99,15 @@
 				var instructions = {
 				  type: 'instructions',
 				  pages: [
-				  "<p><h1>Uputstva</h1></p>"+
-				  "<p>U ovom eksperimentu ispituju se procesi učenja novog materijala. </p>"+
-				  "<p>Vaš zadatak u narednih 15 minuta biće da najpre kroz 9 trening blokova, a potom još 4 test bloka zamislite da ste astromikrobiolog.</p>"+
-				  "<p>U svakom pokušaju prikazaće Vam se na ekranu slika mikroba za koji treba da naučite da li je opasan ili ne. Ovi mikrobi se mogu pojaviti sa nazivima ili bez. </p>"+
-				  "<p>Naziv mikroba biće emitovan zvučno. Vas predstavlja slika naučnika koju možete pomerati pritiskom na jednu od četiri strelice. </p>"+
-				  "<p>Kada to učinite strelice koje stoje pored slike će se obojiti u crveno ili zeleno. </p>"+
-				  "<p>Ukoliko pogrešite čućete oštar „bip“ i strelica će se obojiti u crveno. Ukoliko tačno klasifikujete mikrob čućete kratak zvuk zvona i strelica će se obojiti u zeleno.</p>"+
-				  "<p>Ako ste pažljivo pročitali instrukcije možete preći na narednu stranu klikom na SPACE.</p>",
+				  "<h1>Uputstva</h1>"+
+				  "<p><strong>Pažljivo pročitajte uputstva pre nego što pređete na sledeći korak jer nećete moći ponovo da se vratite na ovaj prozor.</strong></p>"+
+				  "<p>U ovom eksperimentu ispituju se procesi učenja novog materijala.</p>"+
+				  "<p>Vaš zadatak u narednih 30 minuta biće da najpre kroz 9 trening blokova, a potom još 4 test bloka zamislite da ste astromikrobiolog. Nakon dužeg treninga (20 min) imaćete pauzu pre prelaska na test fazu.</p>"+
+				  "<p>U svakom pokušaju prikazaće Vam se na nekoliko sekundi na ekranu slika mikroba za koji treba da naučite <strong>da li je opasan ili ne</strong>. U nekim situacijama će mikrobi biti prikazani sa imenom koje ćete čuti na slušalicama, dok će u drugim situacijama biti prikazani bez imena (samo slika).</p>"+
+				  "<p>Vas predstavlja slika naučnika koja će biti prikazana ispod, iznad, levo ili desno od mikroba. Ukoliko odlučite da mikrob nije opasan pritisnite strelicu koja pokazuje iz pravca naučnika u pravcu mikroba (kao da se naučnik približava mikrobu). Ukoliko odlučite da je opasan, pritisnite strelicu koja pokazuje od mikroba (kao da se naučnik odaljava od mikroba).</p>"+
+				  "<p>Čućete oštar „bip“ ako ste pogrešili u izboru i strelica će se obojiti u crveno. U slučaju da tačno klasifikujete mikrob čućete kratak zvuk zvona i strelica će se obojiti u zeleno.</p>"+
+				  "<p>Ako ste pažljivo pročitali instrukcije možete preći na narednu stranu klikom na SPACE.</p>"+
+				  "<p style='text-align: center'><img src='Stims/example-image.png' alt='example experiment image'></p>",
 
 				],
 				  key_forward: ' ',
@@ -217,6 +218,11 @@
 							  stimulus: 'Stims/Figures/' + fakeforkat.Image + '.bmp', //filename
 							  location: fakeforkat.Location, //
 							  correct_response: fakeforkat.CorrectResponse,
+							  block: fakeforkat.Block,
+							  block_trial: fakeforkat.BlockTrial,
+							  condition: fakeforkat.Condition,
+							  label_type: fakeforkat.LabelType,
+							  subcondition: fakeforkat.SubCondition,
 							  is_html: true,
 							  on_finish: function(trial_data){
 								jsPsych.data.addDataToLastTrial({trialNum: fakeforkat.TrialNum});
