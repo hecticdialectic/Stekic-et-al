@@ -177,6 +177,11 @@
 						  stimulus: 'Stims/Figures/' + fakeforkat.Image + '.bmp', //filename
 						  location: fakeforkat.Location, //
 						  correct_response: fakeforkat.CorrectResponse,
+						  block: fakeforkat.Block,
+						  block_trial: fakeforkat.BlockTrial,
+						  condition: fakeforkat.Condition,
+						  label_type: fakeforkat.LabelType,
+						  subcondition: fakeforkat.SubCondition,
 						  is_html: true,
 						  on_finish: function(trial_data){
 							jsPsych.data.addDataToLastTrial({trialNum: fakeforkat.TrialNum});

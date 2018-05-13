@@ -1,4 +1,0 @@
-"Id"	"Label"	"Image"	"ImageSeed"	"ImageShape"	"ImageCurviness"	"ImageType"	"TrialNum"	"TrialType"	"Block"	"BlockTrial"	"Condition"	"LabelType"	"Location"	"Approach"	"Retreat"	"SubCondition"	"CorrectResponse"
-"3-4"	"ta:pa:ta"	"144-J-10-3"	"144"	"J"	"10"	"3"	1	"Testing"	1	1	"1"	"P"	"Left"	"39"	"37"	"C"	"37"
-"3-4"	"ta:pa:ta"	"71-J-0-1"	"71"	"J"	"0"	"1"	2	"Testing"	1	2	"1"	"P"	"Down"	"38"	"40"	"C"	"40"
-"3-4"	"na:ma:la"	"102-C-20-4"	"102"	"C"	"20"	"4"	3	"Testing"	1	3	"1"	"S"	"Right"	"37"	"39"	"C"	"37"

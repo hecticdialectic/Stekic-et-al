@@ -26,11 +26,11 @@ jsPsych.plugins['approach-retreat'] = (function(){
     trial.prompt = trial.prompt || '';
     trial.response_ends_trial = (typeof trial.response_ends_trial == 'undefined') ? false : trial.response_ends_trial;
     trial.timing_gap = trial.timing_gap || 0; //how long to wait until the stims are presented
-    trial.block = fakeforkat.Block || 0;
-	trial.block_trial = fakeforkat.BlockTrial || 0;
-	trial.condition = fakeforkat.Condition || 0;
-	trial.label_type = fakeforkat.LabelType || '';
-	trial.subcondition = fakeforkat.SubCondition || ''; 
+    trial.block = trial.block || 0;
+	trial.block_trial = trial.block_trial || 0;
+	trial.condition = trial.condition || 0;
+	trial.label_type = trial.label_type || '';
+	trial.subcondition = trial.subcondition || ''; 
     
     console.log(trial.trial_type);
 	// don't show label or play sound if trial label is set to none
