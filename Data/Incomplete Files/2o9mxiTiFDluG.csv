@@ -1,0 +1,7 @@
+"rt","key_press","trial_type","trial_index","time_elapsed","internal_node_id","view_history","responses"
+"12057","32","text","0","12063","0.0-0.0-0.0","",""
+"45855","","instructions","1","57921","0.0-1.0","[{""page_index"":0,""viewing_time"":45851}]",""
+"30029","","survey-multi-choice","2","88010","0.0-2.0","","{""Q0"":""Da"",""Q1"":""Da"",""Q2"":""Da"",""Q3"":""Da"",""Q4"":""Da"",""Q5"":""Da""}"
+"","","bio","3","97445","0.0-3.0","","{""age"":""19"",""gender"":""f"",""specify"":""""}"
+"7011","","instructions","4","104458","0.0-4.0","[{""page_index"":0,""viewing_time"":7009}]",""
+"2542","","survey-text","5","107011","0.0-5.0","","{""Q0"":""""}"

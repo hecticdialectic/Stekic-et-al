@@ -1,0 +1,588 @@
+---
+title: "Pejovic Analysis"
+author: "Alan Nielsen"
+date: "August 31, 2017"
+output: html_document
+---
+This is an R Markdown document of my first look at Data from Pejovic, Nielsen, & Kovic.
+
+The data for these experiments can be found at the GitHub Repository here: www.github.com/SOMETHING
+
+#Design
+In the two studies presented here, participants completed a categorisation task where they had to learn the category label for two sets of images- rounded visual stimuli and jagged visual stimuli.
+
+In Experiment 1, the classic trisyllabic labels Takete and Maluma where used, while in Experiment 2, the labels were modified to be single syllables: Mal vs. Tik
+
+Both experiments were 2x2 experimental designs: Participants learned a category structure that was either congruent with sound symbolism (Jagged = Takete/Tik, Curvy= Maluma/Mal) or incongruent. As a second (and novel) manipulation, participants varied with respect to which was presented first: participants in the label-first condition heard labels prior to seeing the presented images, while those in the image-first condition were presented with labels after seeing the images.
+
+###Participants
+Experiment 1: 33 undergraduate students between 19 and 24 years old (1 excluded) 
+Experiment 2: 29 undergraduate students between 19 and 24 years old (2 excluded)
+
+First we need to **Read In and Sanitize the Data for Analysis**
+
+```{r}
+Exp1 <- read.csv("F:/Experiments/Collaborations/Pejovic et al/data/Exp1.csv")     
+Exp2 <- read.csv("F:/Experiments/Collaborations/Pejovic et al/data/Exp2.csv")      
+```
+
+Next lets take a really general look at the data frame and how it is structured - we can then see if there is any further messy data that needs to be cleaned up
+
+The **str()** command is great for this- for every column in our data frame it tells us what the vector is stored as
+
+```{r}
+str(Exp1)
+str(Exp2)
+```
+
+So we can see that the following things need to change:
+
+1- Participant Needs to be a factor, not an integer
+2- FOr Experiment 1, both the Order and Congruency columns have some screwy data- there are values of "0", where there should only be Audio-Visual or Visual-Audio
+3- Balance needs to be a factor, not an integer
+4- Block is also screwy- ? is somehow one of the levels
+5- Resp is screwy- the only possible values should be L, R, or - (for NR trials)
+6- RespCorr also has this problem- there should only be 0, 1, and NR - no ? values
+7- For Experiment 2, block is an integer (but should be a factor)
+
+Lets take care of the basic stuff first:
+
+Setting columns as factors:
+
+```{r}
+Exp1$Participant <- as.factor(Exp1$Participant)
+Exp2$Participant <- as.factor(Exp2$Participant)
+
+Exp1$Balance <- as.factor(Exp1$Balance)
+Exp2$Balance <- as.factor(Exp2$Balance)
+
+
+str(Exp1)
+str(Exp2)
+```
+
+Now we can hopefully take a look at what is going on with this other weird stuff in Exp1 data
+
+We could just do this by subsetting the weird responses out and hoping for the best, but lets take a look at them first to make sure they are a data artefact and not something terrible
+
+```{r}
+OrderTrouble <- subset(Exp1, Order == 0)
+CongruencyTrouble <- subset(Exp1, Congruency == 0)
+BlockTrouble <- subset(Exp1, Block == "?")
+RespTrouble <- subset(Exp1, Resp == "?")
+
+OrderTrouble
+CongruencyTrouble
+BlockTrouble
+RespTrouble
+```
+
+Fortunately, looking at these shows us that they are all on the same 3 lines of the dataframe, so clearly something got messed up when copying the data
+
+This is good though - it means we can kick out this weird data with one command
+
+```{r}
+Exp1 <- subset(Exp1, Block != "?")
+
+str(Exp1)
+
+unique(Exp1$Block)
+```
+
+Unfortunately you will note that the bad values are still contained in the levels of the factors (but not the data itself), to get rid of these we need to relevel
+
+Fortunately, we can do this to the whole dataframe with droplevels
+
+```{r}
+Exp1 <- droplevels(Exp1)
+str(Exp1)
+
+Exp2 <- droplevels(Exp2)
+Exp2$Block <- as.factor(Exp2$Block)
+str(Exp2)
+
+
+```
+
+Now our data structures look the same for both Experiments, so we're off to a good
+
+Last thing we want to do before thinking about looking the data is dropping the NR (No Response) trials. Again this is just a single line of R code (note that in this file, NR is reading as NR      ) (aka there are a bunch of spaces), so it's a bit weird to drop
+
+```{r}
+Exp1 <- droplevels(subset(Exp1, RespCorr != "NR      "))
+Exp2 <- droplevels(subset(Exp2, RespCorr != "NR      "))
+```
+
+First we'll take a look at distributions of Response Times - and also some tests of the normality of those distributions
+
+###Experiment 1 Response Time Normality Testing
+```{r}
+Exp1D <- density(Exp1$RT)
+plot(Exp1D, main="Kernel Density of Response Times")
+polygon(Exp1D, col= 'red', border= 'black')
+
+library(moments)
+library(nortest)
+library(e1071)
+shapiro.test(Exp1$RT) #Shapiro-Wilkes normality test
+ad.test(Exp1$RT)  #Anderson-Darling normality test
+cvm.test(Exp1$RT) # Cramer-von Mises normality test
+pearson.test(Exp1$RT) # Pearson chi-square normality test
+
+skewness(Exp1$RT)
+kurtosis(Exp1$RT)
+
+qqnorm(Exp1$RT)
+qqline(Exp1$RT)
+```
+In short, all of these point towards the RT data not being normally distributed - so not ideal for statistical analyses - if you're not familiar with these metrics, the easier ones to look at are the density plot (where you should expect to see a normal curve), and the qqplot (where the dots should all be in a straight line)
+
+###Experiment 2 Response Time Normality Testing
+```{r}
+Exp2D <- density(Exp2$RT)
+plot(Exp1D, main="Kernel Density of Response Times")
+polygon(Exp1D, col= 'red', border= 'black')
+
+shapiro.test(Exp2$RT) #Shapiro-Wilkes normality test
+ad.test(Exp2$RT)  #Anderson-Darling normality test
+cvm.test(Exp2$RT) # Cramer-von Mises normality test
+pearson.test(Exp2$RT) # Pearson chi-square normality test
+
+skewness(Exp2$RT)
+kurtosis(Exp2$RT)
+
+qqnorm(Exp2$RT)
+qqline(Exp2$RT)
+```
+
+So, none of the RT data is normally distributed- how do we clean it up?
+
+First, we need to aggregate for each experimental participant, rather than looking at just the raw RT data
+
+###Aggregating Data
+```{r}
+library(doBy)
+
+Exp1Agg <- summaryBy(RespCorr + RT ~ Participant, data= Exp1, Fun = c(mean, sd))
+head(Exp1Agg)
+```
+
+Here we can see our first error pop up- Means of RespCorr that are Above 1- aka impossible values- this is because RespCorr is currently a factor, where it needs to be numeric for us to take aggregate values
+
+(Note you have to convert levels of a factor into characters before they can be converted to numeric)
+```{r}
+Exp1$RespCorr2 <- as.numeric(as.character(Exp1$RespCorr))
+
+Exp1Agg <- summaryBy(RespCorr2 + RT ~ Participant + Experiment + Training + Balance + Block, data= Exp1, FUN = c(mean, sd))
+head(Exp1Agg)
+
+Exp2$RespCorr2 <- as.numeric(as.character(Exp2$RespCorr))
+
+Exp2Agg <- summaryBy(RespCorr2 + RT ~ Participant + Experiment + Training + Balance + Block, data= Exp2, FUN = c(mean, sd))
+head(Exp2Agg)
+```
+
+Now lets take another quick look at the RTs, just to make sure they aren't now magically normally distributed (we'll leave out the tests and just look at plots)
+
+###Aggregate Data Normality Testing
+```{r}
+Exp1D <- density(Exp1Agg$RT.mean)
+plot(Exp1D, main="Kernel Density of Response Times")
+polygon(Exp1D, col= 'red', border= 'black')
+
+qqnorm(Exp1Agg$RT.mean)
+qqline(Exp1Agg$RT.mean)
+
+Exp2D <- density(Exp2Agg$RT.mean)
+plot(Exp2D, main="Kernel Density of Response Times")
+polygon(Exp2D, col= 'red', border= 'black')
+
+qqnorm(Exp2Agg$RT.mean)
+qqline(Exp2Agg$RT.mean)
+
+```
+
+So, still not normally distributed- looks a little bit closer, but not there.
+
+How do we get our RTs normally distributed (or close enough to not worry)? One way is simply log transforming the response times (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4528092/)
+
+###Log Transforming RTs and checking normality
+```{r}
+Exp1Agg$LogRT <- log(Exp1Agg$RT.mean)
+Exp2Agg$LogRT <- log(Exp2Agg$RT.mean)
+
+Exp1D <- density(Exp1Agg$LogRT)
+plot(Exp1D, main="Kernel Density of Response Times")
+polygon(Exp1D, col= 'red', border= 'black')
+
+Exp2D <- density(Exp2Agg$LogRT)
+plot(Exp2D, main="Kernel Density of Response Times")
+polygon(Exp2D, col= 'red', border= 'black')
+
+
+qqnorm(Exp1Agg$LogRT)
+qqline(Exp1Agg$LogRT)
+
+qqnorm(Exp2Agg$LogRT)
+qqline(Exp2Agg$LogRT)
+
+```
+
+So with those tansformations we're a lot closer to looking normally distributed
+
+But actually the best way to do this is to log transform the ORIGINAL values, aggregate them, and then back-transform them. Lets take a look at doing that
+
+```{r}
+Exp1$LogRT <- log(Exp1$RT)
+Exp2$LogRT <- log(Exp2$RT)
+
+##qqnorm(Exp1$LogRT)
+##qqline(Exp1$LogRT)
+
+##qqnorm(Exp2$LogRT)
+##qqline(Exp2$LogRT)
+
+```
+
+Trying to plot these doesn't work (so I've commented them out)- why is that? We get returned an error, lets take a look at the data again quickly to figure out what is going on
+```{r}
+str(Exp1)
+unique(Exp1$LogRT)
+```
+So LogRT is Numeric, but if you look at Entry 81 you'll see that there is a value of "-Inf", which means -Infinity. The only way to get this value from a log transform is if you attempt to log transform a value of 0.
+
+So we know there are RT values of 0 - lets get rid of those - they don't really make sense (although I understand this is likely a feature of how RT is measured in EPrime or whatever software this experiment is run in)
+
+```{r}
+Exp1 <- subset(Exp1, RT > 0)
+Exp2 <- subset(Exp2, RT > 0)
+
+Exp1$LogRT <- log(Exp1$RT)
+Exp2$LogRT <- log(Exp2$RT)
+
+qqnorm(Exp1$LogRT)
+qqline(Exp1$LogRT)
+
+qqnorm(Exp2$LogRT)
+qqline(Exp2$LogRT)
+```
+
+So, non-aggregated RTs, even once log transformed, are not very normal.
+What about when we aggregate them
+
+```{r}
+Exp1Agg2 <- summaryBy(RespCorr2 + LogRT ~ Participant + Experiment + Training + Balance + Block, data= Exp1, FUN = c(mean, sd))
+head(Exp1Agg2)
+
+Exp2Agg2 <- summaryBy(RespCorr2 + LogRT ~ Participant + Experiment + Training + Balance + Block, data= Exp2, FUN = c(mean, sd))
+head(Exp2Agg2)
+
+qqnorm(Exp1Agg2$LogRT.mean)
+qqline(Exp1Agg2$LogRT.mean)
+
+qqnorm(Exp2Agg2$LogRT.mean)
+qqline(Exp2Agg2$LogRT.mean)
+```
+
+Looks pretty good now - what happens when we back-transform the logRTs into real RT values
+Happily, this can just be done with the exp() command
+
+
+```{r}
+Exp1Agg2$RT.mean <- exp(Exp1Agg2$LogRT.mean)
+Exp2Agg2$RT.mean <- exp(Exp2Agg2$LogRT.mean)
+
+qqnorm(Exp1Agg2$RT.mean)
+qqline(Exp1Agg2$RT.mean)
+
+qqnorm(Exp2Agg2$RT.mean)
+qqline(Exp2Agg2$RT.mean)
+```
+
+This actually makes things **less** normal, rather than more, so for now we will proceed with doing analysis on the aggregated LogRTs
+
+So lets do some statistics
+
+#STATISTICS
+
+To start with, we actually need to re-aggregate the data so it includes all of the stuff we want (Experimental Conditions)
+
+```{r, message = FALSE, warning = FALSE}
+library(tidyr)
+library(lme4)
+
+Exp1Agg3 <- summaryBy(RespCorr2 + LogRT ~ Participant + Order + Congruency + Balance + Block, data= Exp1, FUN = c(mean, sd))
+
+Exp2Agg3 <- summaryBy(RespCorr2 + LogRT ~ Participant + Order + Congruency + Balance + Block, data= Exp2, FUN = c(mean, sd))
+```
+
+
+##Experiment 1 Statistics start here
+
+###Experiment 1 Response Time Analysis
+
+```{r, warning = FALSE, message = FALSE}
+
+Exp1Agg3$conditions <- interaction(Exp1Agg3$Order, Exp1Agg3$Congruency)
+
+library(ggplot2)
+
+ggplot(data=Exp1Agg3, aes(x = Block, y = LogRT.mean, colour = conditions, group= conditions)) + 
+  geom_smooth(aes(colour = Order, linetype= Congruency),size = 1,se = F)+
+  geom_point(aes(col = Order)) +
+  ggtitle("Experiment 1 Response Times") +
+  labs(x="Block", y="Log of Response Time") +
+  theme(axis.title.y = element_text(size=12,  color="#666666")) +
+  theme(axis.text = element_text(size=8)) +
+  theme(plot.title = element_text(size=16, face="bold", hjust=0, color="#666666"))
+```
+
+So that is what our response time data looks like plotted - lets have a bash at the basic stats
+
+First, for reporting you'll want some descriptives - we can output those with **tapply**
+
+```{r}
+tapply(Exp1Agg3$LogRT.mean, Exp1Agg3$Block, mean)
+tapply(Exp1Agg3$LogRT.mean, Exp1Agg3$Block, sd)
+
+tapply(Exp1Agg3$LogRT.mean, Exp1Agg3$Order, mean)
+tapply(Exp1Agg3$LogRT.mean, Exp1Agg3$Order, sd)
+
+tapply(Exp1Agg3$LogRT.mean, Exp1Agg3$Congruency, mean)
+tapply(Exp1Agg3$LogRT.mean, Exp1Agg3$Congruency, sd)
+
+## Also include a little bit so we can report actual RTs for ease
+Exp1Agg3$RT <- exp(Exp1Agg3$LogRT.mean)
+tapply(Exp1Agg3$RT, Exp1Agg3$Block, mean)
+tapply(Exp1Agg3$RT, Exp1Agg3$Order, mean)
+tapply(Exp1Agg3$RT, Exp1Agg3$Congruency, mean)
+
+```
+
+### Using LMERTEST
+```{r, warning = FALSE, message= FALSE}
+library(lmerTest)
+Exp1Full <- lmer(LogRT.mean ~ Order * Congruency * Block + (1 + Block|Participant), data=Exp1Agg3, REML= FALSE)
+#summary(Exp1Full)
+anova(Exp1Full)
+
+```
+
+So what do we find here- basically there are main effects of Block and of Order, but no effect of Congruency, and no significant interactions of anything.
+
+In the paper we currently report a significant difference as a post-hoc test based on some t-tests, but as I understand it those tests are currently done on non-aggregated data. As it stands, the lack of significant interactions doesn't really license a post-hoc t-test, but we can go ahead and look at them anyways.
+
+First lets produce some plots that don't include block
+
+###Graph of Interaction Effect
+```{r}
+ggplot(data=Exp1Agg3, aes(x = Order, y = LogRT.mean, group= conditions)) + 
+  geom_boxplot(aes(fill = Congruency),size = 1,se = F) +
+  ggtitle("Experiment 1 Response Times") +
+  labs(x="Order", y="Log of Response Time") +
+  theme(axis.title.y = element_text(size=12,  color="#666666")) +
+  theme(axis.text = element_text(size=8)) +
+  theme(plot.title = element_text(size=16, face="bold", hjust=0, color="#666666"))
+
+```
+
+And the stats?
+
+```{r}
+
+Exp1.AV <- subset(Exp1Agg3, Order == "Audio-Visual")
+Exp1.VA <- subset(Exp1Agg3, Order == "Visual-Audio")
+
+Exp1.AV.C <- subset(Exp1.AV, Congruency == "Congruent")
+Exp1.AV.I <- subset(Exp1.AV, Congruency == "Incongruent")
+
+Exp1.VA.C <- subset(Exp1.VA, Congruency == "Congruent")
+Exp1.VA.I <- subset(Exp1.VA, Congruency == "Incongruent")
+
+mean(Exp1.AV.C$LogRT.mean)
+mean(Exp1.AV.I$LogRT.mean)
+mean(Exp1.VA.C$LogRT.mean)
+mean(Exp1.VA.I$LogRT.mean)
+
+sd(Exp1.AV.C$LogRT.mean)
+sd(Exp1.AV.I$LogRT.mean)
+sd(Exp1.VA.C$LogRT.mean)
+sd(Exp1.VA.I$LogRT.mean)
+
+mean(Exp1.AV.C$RT)
+mean(Exp1.AV.I$RT)
+mean(Exp1.VA.C$RT)
+mean(Exp1.VA.I$RT)
+
+
+t.test(Exp1.AV.C$LogRT.mean, Exp1.AV.I$LogRT.mean)
+t.test(Exp1.VA.C$LogRT.mean, Exp1.VA.I$LogRT.mean)
+
+```
+
+So unfortunately on these log transformed RT values we don't even get significant differences on these tests
+
+What about the Correctness Data for Experiment 1
+
+### Experiment 1 Correctness Data
+
+```{r, warning = FALSE, message= FALSE}
+ggplot(data=Exp1Agg3, aes(x = Block, y = RespCorr2.mean, colour = conditions, group= conditions)) + 
+  geom_smooth(aes(colour = Order, linetype= Congruency),size = 1,se = F)+
+  geom_jitter(aes(col = Order, shape = Congruency)) +
+  ggtitle("Experiment 1 Correctness") +
+  labs(x="Block", y="Proportion Correct") +
+  theme(axis.title.y = element_text(size=12,  color="#666666")) +
+  theme(axis.text = element_text(size=8)) +
+  theme(plot.title = element_text(size=16, face="bold", hjust=0, color="#666666"))
+
+```
+
+There is at least a bit of weirdness looking at this data- especially the horseshoe shaped correctness for Incognruent Audio-Visual participants, where suddenly a good chunk are quite bad at the task in block 3- it's probably just because of low n, but it definitely stands out as bizarre- maybe somewhere to look for relatively junky data (i.e. this might go away if we further filtered out response times that are too long/short)
+
+And the stats
+
+```{r}
+
+tapply(Exp1Agg3$RespCorr2.mean, Exp1Agg3$Block, mean)
+tapply(Exp1Agg3$RespCorr2.mean, Exp1Agg3$Block, sd)
+
+tapply(Exp1Agg3$RespCorr2.mean, Exp1Agg3$Order, mean)
+tapply(Exp1Agg3$RespCorr2.mean, Exp1Agg3$Order, sd)
+
+tapply(Exp1Agg3$RespCorr2.mean, Exp1Agg3$Congruency, mean)
+tapply(Exp1Agg3$RespCorr2.mean, Exp1Agg3$Congruency, sd)
+
+Exp1FullCorr <- lmer(RespCorr2.mean ~ Order * Congruency * Block + (1 + Block|Participant), data=Exp1Agg3, REML= FALSE)
+#summary(Exp1FullCorr)
+anova(Exp1FullCorr)
+
+```
+
+For the correctness data, we only get a main effect of block- not surprisingly they get better over the course of blocks
+
+The last thing we might want to consider looking at is just the basic correlation between Correctness and Response times
+
+###RT x Correctness Correlation
+
+
+```{r, warning = FALSE, message= FALSE}
+ggplot(data=Exp1Agg3, aes(x = RespCorr2.mean , y = LogRT.mean, group= conditions)) + 
+  geom_smooth(aes(colour = Order, linetype= Congruency),size = 1,se = F, method = lm)+
+  geom_point(aes(col = Order, shape = Congruency)) +
+  ggtitle("Experiment 1- Scatterplot of Correctness x LogRT") +
+  labs(x="Proportion Correct", y="LogRT") +
+  theme(axis.title.y = element_text(size=12,  color="#666666")) +
+  theme(axis.text = element_text(size=8)) +
+  theme(plot.title = element_text(size=16, face="bold", hjust=0, color="#666666"))
+
+```
+
+So, generally folks get faster as they get better, except those who were in the Audio-Visual Congruent condition, who strangely get slightly slower as they get better (but probably just a few outliers)
+ 
+ 
+ Now all the same analyses, but for Experiment 2
+
+#Experiment 2 Analysis
+ 
+```{r, message = FALSE, warning = FALSE}
+ 
+Exp2Agg3$conditions <- interaction(Exp2Agg3$Order, Exp2Agg3$Congruency)
+
+library(ggplot2)
+
+ggplot(data=Exp2Agg3, aes(x = Block, y = LogRT.mean, colour = conditions, group= conditions)) + 
+  geom_smooth(aes(colour = Order, linetype= Congruency),size = 1,se = F)+
+  geom_point(aes(col = Order)) +
+  ggtitle("Experiment 2 Response Times") +
+  labs(x="Block", y="Log of Response Time") +
+  theme(axis.title.y = element_text(size=12,  color="#666666")) +
+  theme(axis.text = element_text(size=8)) +
+  theme(plot.title = element_text(size=16, face="bold", hjust=0, color="#666666"))
+
+
+tapply(Exp2Agg3$LogRT.mean, Exp2Agg3$Block, mean)
+tapply(Exp2Agg3$LogRT.mean, Exp2Agg3$Block, sd)
+
+tapply(Exp2Agg3$LogRT.mean, Exp2Agg3$Order, mean)
+tapply(Exp2Agg3$LogRT.mean, Exp2Agg3$Order, sd)
+
+tapply(Exp2Agg3$LogRT.mean, Exp2Agg3$Congruency, mean)
+tapply(Exp2Agg3$LogRT.mean, Exp2Agg3$Congruency, sd)
+
+Exp2Agg3$RT <- exp(Exp2Agg3$LogRT.mean)
+tapply(Exp2Agg3$RT, Exp2Agg3$Block, mean)
+tapply(Exp2Agg3$RT, Exp2Agg3$Order, mean)
+tapply(Exp2Agg3$RT, Exp2Agg3$Congruency, mean)
+
+Exp2Full <- lmer(LogRT.mean ~ Order * Congruency * Block + (1|Participant), data=Exp2Agg3, REML= FALSE)
+#summary(Exp2Full)
+anova(Exp2Full)
+
+ggplot(data=Exp2Agg3, aes(x = Order, y = LogRT.mean, group= conditions)) + 
+  geom_boxplot(aes(fill = Congruency),size = 1,se = F) +
+  ggtitle("Experiment 2 Response Times") +
+  labs(x="Order", y="Log of Response Time") +
+  theme(axis.title.y = element_text(size=12,  color="#666666")) +
+  theme(axis.text = element_text(size=8)) +
+  theme(plot.title = element_text(size=16, face="bold", hjust=0, color="#666666"))
+
+Exp2.AV <- subset(Exp2Agg3, Order == "Audio-Visual")
+Exp2.VA <- subset(Exp2Agg3, Order == "Visual-Audio")
+
+Exp2.AV.C <- subset(Exp2.AV, Congruency == "Congruent")
+Exp2.AV.I <- subset(Exp2.AV, Congruency == "Incongruent")
+
+Exp2.VA.C <- subset(Exp2.VA, Congruency == "Congruent")
+Exp2.VA.I <- subset(Exp2.VA, Congruency == "Incongruent")
+
+mean(Exp2.AV.C$LogRT.mean)
+mean(Exp2.AV.I$LogRT.mean)
+mean(Exp2.VA.C$LogRT.mean)
+mean(Exp2.VA.I$LogRT.mean)
+
+sd(Exp2.AV.C$LogRT.mean)
+sd(Exp2.AV.I$LogRT.mean)
+sd(Exp2.VA.C$LogRT.mean)
+sd(Exp2.VA.I$LogRT.mean)
+
+mean(Exp2.AV.C$RT)
+mean(Exp2.AV.I$RT)
+mean(Exp2.VA.C$RT)
+mean(Exp2.VA.I$RT)
+
+t.test(Exp2.AV.C$LogRT.mean, Exp2.AV.I$LogRT.mean)
+t.test(Exp2.VA.C$LogRT.mean, Exp2.VA.I$LogRT.mean)
+
+ggplot(data=Exp2Agg3, aes(x = Block, y = RespCorr2.mean, colour = conditions, group= conditions)) + 
+  geom_smooth(aes(colour = Order, linetype= Congruency),size = 1,se = F)+
+  geom_jitter(aes(col = Order, shape = Congruency)) +
+  ggtitle("Experiment 2 Correctness") +
+  labs(x="Block", y="Proportion Correct") +
+  theme(axis.title.y = element_text(size=12,  color="#666666")) +
+  theme(axis.text = element_text(size=8)) +
+  theme(plot.title = element_text(size=16, face="bold", hjust=0, color="#666666"))
+
+Exp2FullCorr <- lmer(RespCorr2.mean ~ Order * Congruency * Block + (1|Participant), data=Exp2Agg3, REML= FALSE)
+#summary(Exp2FullCorr)
+anova(Exp2FullCorr)
+
+tapply(Exp2Agg3$RespCorr2.mean, Exp2Agg3$Block, mean)
+tapply(Exp2Agg3$RespCorr2.mean, Exp2Agg3$Block, sd)
+
+tapply(Exp2Agg3$RespCorr2.mean, Exp2Agg3$Order, mean)
+tapply(Exp2Agg3$RespCorr2.mean, Exp2Agg3$Order, sd)
+
+tapply(Exp2Agg3$RespCorr2.mean, Exp2Agg3$Congruency, mean)
+tapply(Exp2Agg3$RespCorr2.mean, Exp2Agg3$Congruency, sd)
+
+ggplot(data=Exp2Agg3, aes(x = RespCorr2.mean , y = LogRT.mean, group= conditions)) + 
+  geom_smooth(aes(colour = Order, linetype= Congruency),size = 1,se = F, method = lm)+
+  geom_point(aes(col = Order, shape = Congruency)) +
+  ggtitle("Experiment 2- Scatterplot of Correctness x LogRT") +
+  labs(x="Proportion Correct", y="LogRT") +
+  theme(axis.title.y = element_text(size=12,  color="#666666")) +
+  theme(axis.text = element_text(size=8)) +
+  theme(plot.title = element_text(size=16, face="bold", hjust=0, color="#666666"))
+
+```
