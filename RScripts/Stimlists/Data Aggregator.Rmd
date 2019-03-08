@@ -28,6 +28,8 @@ colnames(combined.df.40)<- c("rtD", "key_press", "trialtype2", "TrialIndex", "el
   
 combined.df <- rbind(combined.df.50, combined.df.40)
 
+head(combined.df)
+
 ```
 
 

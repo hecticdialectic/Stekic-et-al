@@ -5,6 +5,15 @@ date: "February 3, 2019"
 output: html_document
 ---
 
+The first thing we generally need to do is to read in all of our data into a single data frame. Usually this is fairly simple because all of the data is formatted identically. However, in this case there were some small changes made to the code midway through the experiment (actually a jsPsych update) so our completed data files come out in two forms, which unfortunately can't just be merged with each other (because they are formatted slightly differently.)
+
+So, your first exercise is to read these files in and merge them. This is actually pretty tricky, so I've done it for you below and left out only the section for "files40" (note this naming is based on the size of the outputted files, if you're curious), which you should be able to generalise from the section above.
+
+For this block of code, you have three jobs
+
+1) Replicate the code for files50 with files40
+2) Use rbind to put the two data frames together- you'll note that just the code included will kick an error message- figure out what this means and modify the data frames so that they can be merged 
+3) Comment on each line of code with an explanation of what you think it is doing
 
 ```{r setup}
 library(data.table)
@@ -17,22 +26,22 @@ combined.df.50 <- do.call(rbind , tables50)
 
 combined.df.50[] <- lapply(combined.df.50, function(x) gsub("\\\\", "", x))
 
-setwd("C:/Users/Alan/Documents/GitHub/Stekic-et-al/Data/40s/")
-files40  <- list.files(pattern = '\\.csv')
-tables40 <- lapply(files40, read.csv, header = TRUE)
-combined.df.40 <- do.call(rbind , tables40)
-
-colnames(combined.df.50)<- c("rtD", "key_press", "trialtype2", "TrialIndex", "elapsed", "node_id", "viewhist", "responses", "Yoking", "RT", "RespKey", "RespCorr", "TrialType", "Image", "Label", "Location", "CorrectResponse", "Block", "BlockTrial", "Condition", "LabelType", "Subcondition", "TrialNum")
+#DO THE SAME THING FOR files40
+#DOMEHERE
 
 
-colnames(combined.df.40)<- c("rtD", "key_press", "trialtype2", "TrialIndex", "elapsed", "node_id", "viewhist", "responses", "Yoking", "RT", "RespKey", "RespCorr", "TrialType", "Image", "Label", "Location", "CorrectResponse", "Block", "BlockTrial", "Condition", "LabelType", "Subcondition", "TrialNum")
+#SOMETHING HERE TO MAKE THE RBIND COMMAND WORK
   
-combined.df <- rbind(combined.df.50, combined.df.40)
+#combined.df <- rbind(combined.df.50, combined.df.40)
+
+#head(combined.df)
 
 ```
 
 
-So that's the data all combined, but now it has to be cleaned up considerably
+So that's the data all combined, but now it has to be cleaned up considerably, because as you can see from the above, it looks gross, with a lot of useless columns, some columns that need to be split into multiple columns, etc.
+
+There is a bunch of cleaning we need to do
 
 1) remove all of the slashes and backslashes everywhere to have data that we can actually read and parse properly with later commands
 2) Extract the biological data from the participants, which is on line 4 of each participant's dataframe, then put it back into the main dataframe as the Age and Gender columns
@@ -42,68 +51,131 @@ So that's the data all combined, but now it has to be cleaned up considerably
 6) Make sure the columns are all the right data types
 7) Delete Wonky data- participant 7gtriiTixvBaQ has some impossible values- something went wrong during that run of the experiment
 
+In each of those sections, I've removed some of the code and left it for you to figure out what is needed.
+
+As above, please comment on each line of code to explain what it does
+
 
 ```{r cleaning up the data}
 #1
-combined.df[] <- lapply(combined.df, function(x) gsub("\\\\", "", x))
-combined.df[] <- lapply(combined.df, function(x) gsub("[{}]", "", x))
-combined.df[] <- lapply(combined.df, function(x) gsub("\"", "", x))
+#combined.df[] <- lapply(combined.df, function(x) gsub("\\\\", "", x)) #Removes \ - How does it do this?
+#REMOVE SPECIAL BRACKETS {,},[,]
+#combined.df[] <- lapply(combined.df, function(x) gsub("\"", "", x))
 
 #2
-biodata <- combined.df[seq(4, nrow(combined.df), 246),]
-biodata <- as.data.frame(biodata$responses)
-colnames(biodata) <- "biodata"
+# The biographical data for each participant is stored on the fourth line of their chunk of the dataframe in the "responses" column
+#We need to extract this data and put it back into the dataframe as separate columns
 
-biodata <- separate(biodata, col=biodata, into = c("Age", "Gender", "Specify"), sep = ",")
+#First, we need to generate a list of these responses, which we will do with the "sequence" function
+#As an example of sequence, look at what happens using the following argument
 
-biodata$Age <- sub("age:", "", biodata$Age)
-biodata$Gender <- sub("gender:", "", biodata$Gender)
-biodata$Specify <- sub("specify:", "", biodata$Specify)
+seq(0,1000,50)
 
-combined.df$Age <- rep(biodata$Age, each = 246)
-combined.df$Gender <- rep(biodata$Gender, each = 246)
+#This should give you an idea of how sequence works
+#If I wanted to take every 250th row of a data frame with 1000 lines, the code would be
+
+# fakedataframe[seq(0,1000,50),]   
+
+#Why is the sequence command in square brackets, and why is there a comma after the end of the command? You'll need to understand this to generate the proper syntax to extract the biographical data. You'll also need to know how many lines of data we have for each participant
+
+#Extract the Biological Data here using sequence() (start given below)
+
+#biodata <- combined.df[]
+
+#biodata <- as.data.frame(biodata$responses)
+#colnames(biodata) <- "biodata"
+
+#If you did your part correctly, then applied the lines above, you'll end up with a data frame with a single column wit hthe name "biodata".
+#That column contains all of the biographical data for each participant in the experiment, but separated by commas, e.g. the first entry is "age:22,gender:f,specify:"
+
+#Separate the data from this single column into separate columns. I've started you below
+#biodata <- separate()
+
+#Given that the generated columns will now have descriptive names like "age", we can get rid of the extraneous bits of information- i.e. we don't need the Age column to say "age: 22" inside of it
+
+#Get rid of that extraneous information in the columns using the substitute (sub) command
+#As an example, consider the string "Alan + Pie = Happiness"
+#This contains extraneous information, because you don't need an Alan for happiness- just pie
+# string1 <- "Alan + Pie = Happiness"
+# string2 <- sub("Alan + ", "", string1)
+#note this doesn't actually work because of the way that sub handles strings- but it should give you an idea of the general syntax
+#I'll start you off below
+
+#biodata$Age <- sub("age:", "", ) #something is missing here after the second comma
+#Now do this for the "gender" column
+#and the "specify" column
 
 #3
-files <- c(files40, files50)
-files <- sub(".csv", "", files)
+#We need to give each participant a unique participantID, something that isn't in the outputted data file
+#They do, already, have such unique IDs- the *names* of their files, so we simply need to take a list of the names of files, then assign these as the participantIDs
 
-combined.df$ParticipantID <- rep(files, each= 246)
+#Remember that we already have two lists of files from above - files40 and files50- so we just need to stick these lists to each other
+#files <- c(files40, files50)
 
-#4
-AggregatedData <- subset(combined.df, select = c("ParticipantID", "Condition", "Subcondition", "Yoking", "TrialNum", "TrialType", "Block", "BlockTrial", "Image", "Label", "Location", "CorrectResponse", "RespKey", "RespCorr", "RT"))
+#this gives us a list of 419 participant IDs (our number of participants), which contains a bit of extraneous info-the ".csv" file extension
+# substitute out the ".csv"
+#files <- sub()
+
+#Paste the ParticipantIDs into a new column of the data frame - one called ParticipantID
+#Note the difference in the lengths of your frames- your "files" list is a vector with 419 items, whereas your data frame has a block of lines for each of those 419 participants
+#Thus, you'll need to paste the participantID from "files" into the participantID column once for each line of the data frame that belong to that participant
+#As an example, if we had five participants with 5 lines each, we'd use
+#combined.df#ParticipantID <- rep(files, each = 5)
+
+#Now do this for our real dataframe
+
+
+#4 I won't make you do this part- this just trims down and re-orders the columns, dropping the useless ones and making sure that the rest have nice names that are transparent
+
+#AggregatedData <- subset(combined.df, select = c("ParticipantID", "Condition", "Subcondition", "Yoking", "TrialNum", "TrialType", "Block", "BlockTrial", "Image", "Label", "Location", "CorrectResponse", "RespKey", "RespCorr", "RT"))
 
 #5
-AggregatedData <- subset(AggregatedData, TrialNum > 0)
+#Here we need to subset again - but this time we want to get rid of rows, rather than columns
+#Specifically for each players there are a number of rows that just have internal information in them and aren't actually "trials"- we've extracted the data we need out of these (consent- done previously, and biographical info, done above), so they can just be dropped
+
+#You're going to do this by again using the subset command- HINT you can do this with a single subset command- doublehint you only want valid "trials"
+
+#AggregatedData <- subset(AggregatedData, ) 
 
 #6
-AggregatedData$ParticipantID <- as.factor(AggregatedData$ParticipantID)
-AggregatedData$Condition <- as.factor(AggregatedData$Condition)
-AggregatedData$Subcondition <- as.factor(AggregatedData$Subcondition)
-AggregatedData$Yoking <- as.factor(AggregatedData$Yoking)
-AggregatedData$TrialType <- as.factor(AggregatedData$TrialType)
-AggregatedData$Location <- as.factor(AggregatedData$Location)
+# As a general rule, we want columns to be treated as factors, or when they are numeric in a meaningful sense, as numeric
+# Generally, a column should be a factor if we're going to include it as a factor in later statistical analysis- so this includes things like "condition", but also thigns like the ParticipantID (which is a random effect in the model)
 
-AggregatedData$TrialNum <- as.numeric(AggregatedData$TrialNum)
-AggregatedData$Block <- as.numeric(AggregatedData$Block)
-AggregatedData$BlockTrial <- as.numeric(AggregatedData$BlockTrial)
-AggregatedData$RespCorr <- as.numeric(AggregatedData$RespCorr)
-AggregatedData$RT <- as.numeric(AggregatedData$RT)
+#Give a thought to what columns need to be factors, and assign them below
+#You can check on the status of the data type for each column using
+#str(AggregatedData)
 
+#Assuming you've done everything correctly up until now, the columns will all be "chr", which means that the data is just lists of characters- not what we want.
+
+#start with the following, and then do the same for any other columns you think should be factors
+##AggregatedData$ParticipantID <- as.factor(AggregatedData$ParticipantID)
+##AggregatedData$Condition <- as.factor(AggregatedData$Condition)
+
+
+#Other factors, like Block, should be numeric- this is because the fact taht they are made up of numbers is actually meaningful- it either gives a natural ordering to the levels of the variable (1 comes before 2), or means that we should consider the size of the differences between the numbers (e.g. response variables)
+
+#Start with the following and figure out what columns should be numeric
+
+##AggregatedData$Block <- as.numeric(AggregatedData$Block)
+##AggregatedData$RespCorr <- as.numeric(AggregatedData$RespCorr)
 
 #7
-AggregatedData <- subset(AggregatedData, ParticipantID != "7gtriiTixvBaQ")
+# There is one participant who has some *really* strange data- They have a trialnum 1 for which no data is recorded, so clearly something went wrong with their version of the experiment. To be safe, we'll cut that participant entirely
+
+#Use the "subset" command to remove the data for participantID "7gtriiTixvBaQ"
+#AggregatedData <- subset()
 
 
 ```
 
 
-Now we need to output some data for kat, who wants a subset of participants from conditions 1, 2, 3A, and 3B
+Finally, (for now), we need to output our dataframe as a csv - both for our record keeping (to keep a clean version of the data and not always have to re-run this script) and to pass on to Vanja
+
+You can write this file out using write.csv
 
 ```{r Data For Kat}
 
-SubData <- subset(AggregatedData, Condition == 1|Condition == 2| Condition == "3A"|Condition == "3B"|Condition == 10)
-
-write.csv(SubData, file=("C:/Users/Alan/Documents/GitHub/Stekic-et-al/Data/KatSample.csv"))
+#write.csv()
 
 ```
 
