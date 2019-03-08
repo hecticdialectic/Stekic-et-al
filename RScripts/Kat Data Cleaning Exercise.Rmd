@@ -1,0 +1,113 @@
+---
+title: "Kat Data Thinger"
+author: "Alan Nielsen"
+date: "February 3, 2019"
+output: html_document
+---
+
+
+```{r setup}
+library(data.table)
+library(tidyverse)
+
+setwd("C:/Users/Alan/Documents/GitHub/Stekic-et-al/Data/50s/")
+files50  <- list.files(pattern = '\\.csv')
+tables50 <- lapply(files50, read.csv, header = TRUE)
+combined.df.50 <- do.call(rbind , tables50)
+
+combined.df.50[] <- lapply(combined.df.50, function(x) gsub("\\\\", "", x))
+
+setwd("C:/Users/Alan/Documents/GitHub/Stekic-et-al/Data/40s/")
+files40  <- list.files(pattern = '\\.csv')
+tables40 <- lapply(files40, read.csv, header = TRUE)
+combined.df.40 <- do.call(rbind , tables40)
+
+colnames(combined.df.50)<- c("rtD", "key_press", "trialtype2", "TrialIndex", "elapsed", "node_id", "viewhist", "responses", "Yoking", "RT", "RespKey", "RespCorr", "TrialType", "Image", "Label", "Location", "CorrectResponse", "Block", "BlockTrial", "Condition", "LabelType", "Subcondition", "TrialNum")
+
+
+colnames(combined.df.40)<- c("rtD", "key_press", "trialtype2", "TrialIndex", "elapsed", "node_id", "viewhist", "responses", "Yoking", "RT", "RespKey", "RespCorr", "TrialType", "Image", "Label", "Location", "CorrectResponse", "Block", "BlockTrial", "Condition", "LabelType", "Subcondition", "TrialNum")
+  
+combined.df <- rbind(combined.df.50, combined.df.40)
+
+```
+
+
+So that's the data all combined, but now it has to be cleaned up considerably
+
+1) remove all of the slashes and backslashes everywhere to have data that we can actually read and parse properly with later commands
+2) Extract the biological data from the participants, which is on line 4 of each participant's dataframe, then put it back into the main dataframe as the Age and Gender columns
+3) Add a unique participantID column (from the filenames)
+4) Trim down to the required columns and re-order them
+5) Delete the useless rows
+6) Make sure the columns are all the right data types
+7) Delete Wonky data- participant 7gtriiTixvBaQ has some impossible values- something went wrong during that run of the experiment
+
+
+```{r cleaning up the data}
+#1
+combined.df[] <- lapply(combined.df, function(x) gsub("\\\\", "", x))
+combined.df[] <- lapply(combined.df, function(x) gsub("[{}]", "", x))
+combined.df[] <- lapply(combined.df, function(x) gsub("\"", "", x))
+
+#2
+biodata <- combined.df[seq(4, nrow(combined.df), 246),]
+biodata <- as.data.frame(biodata$responses)
+colnames(biodata) <- "biodata"
+
+biodata <- separate(biodata, col=biodata, into = c("Age", "Gender", "Specify"), sep = ",")
+
+biodata$Age <- sub("age:", "", biodata$Age)
+biodata$Gender <- sub("gender:", "", biodata$Gender)
+biodata$Specify <- sub("specify:", "", biodata$Specify)
+
+combined.df$Age <- rep(biodata$Age, each = 246)
+combined.df$Gender <- rep(biodata$Gender, each = 246)
+
+#3
+files <- c(files40, files50)
+files <- sub(".csv", "", files)
+
+combined.df$ParticipantID <- rep(files, each= 246)
+
+#4
+AggregatedData <- subset(combined.df, select = c("ParticipantID", "Condition", "Subcondition", "Yoking", "TrialNum", "TrialType", "Block", "BlockTrial", "Image", "Label", "Location", "CorrectResponse", "RespKey", "RespCorr", "RT"))
+
+#5
+AggregatedData <- subset(AggregatedData, TrialNum > 0)
+
+#6
+AggregatedData$ParticipantID <- as.factor(AggregatedData$ParticipantID)
+AggregatedData$Condition <- as.factor(AggregatedData$Condition)
+AggregatedData$Subcondition <- as.factor(AggregatedData$Subcondition)
+AggregatedData$Yoking <- as.factor(AggregatedData$Yoking)
+AggregatedData$TrialType <- as.factor(AggregatedData$TrialType)
+AggregatedData$Location <- as.factor(AggregatedData$Location)
+
+AggregatedData$TrialNum <- as.numeric(AggregatedData$TrialNum)
+AggregatedData$Block <- as.numeric(AggregatedData$Block)
+AggregatedData$BlockTrial <- as.numeric(AggregatedData$BlockTrial)
+AggregatedData$RespCorr <- as.numeric(AggregatedData$RespCorr)
+AggregatedData$RT <- as.numeric(AggregatedData$RT)
+
+
+#7
+AggregatedData <- subset(AggregatedData, ParticipantID != "7gtriiTixvBaQ")
+
+
+```
+
+
+Now we need to output some data for kat, who wants a subset of participants from conditions 1, 2, 3A, and 3B
+
+```{r Data For Kat}
+
+SubData <- subset(AggregatedData, Condition == 1|Condition == 2| Condition == "3A"|Condition == "3B"|Condition == 10)
+
+write.csv(SubData, file=("C:/Users/Alan/Documents/GitHub/Stekic-et-al/Data/KatSample.csv"))
+
+```
+
+
+
+
+

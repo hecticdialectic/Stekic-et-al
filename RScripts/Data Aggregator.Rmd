@@ -9,10 +9,492 @@ output: html_document
 library(data.table)
 library(tidyverse)
 
-setwd("C:/Users/Alan/Documents/GitHub/Stekic-et-al/Data/")
-files  <- list.files(pattern = '\\.csv')
-tables <- lapply(files, read.csv, header = TRUE)
-combined.df <- do.call(rbind , tables)
+setwd("C:/Users/Alan/Documents/GitHub/Stekic-et-al/Data/50s/")
+files50  <- list.files(pattern = '\\.csv')
+tables50 <- lapply(files50, read.csv, header = TRUE)
+combined.df.50 <- do.call(rbind , tables50)
+
+combined.df.50[] <- lapply(combined.df.50, function(x) gsub("\\\\", "", x))
+
+setwd("C:/Users/Alan/Documents/GitHub/Stekic-et-al/Data/40s/")
+files40  <- list.files(pattern = '\\.csv')
+tables40 <- lapply(files40, read.csv, header = TRUE)
+combined.df.40 <- do.call(rbind , tables40)
+
+colnames(combined.df.50)<- c("rtD", "key_press", "trialtype2", "TrialIndex", "elapsed", "node_id", "viewhist", "responses", "Yoking", "RT", "RespKey", "RespCorr", "TrialType", "Image", "Label", "Location", "CorrectResponse", "Block", "BlockTrial", "Condition", "LabelType", "Subcondition", "TrialNum")
+
+
+colnames(combined.df.40)<- c("rtD", "key_press", "trialtype2", "TrialIndex", "elapsed", "node_id", "viewhist", "responses", "Yoking", "RT", "RespKey", "RespCorr", "TrialType", "Image", "Label", "Location", "CorrectResponse", "Block", "BlockTrial", "Condition", "LabelType", "Subcondition", "TrialNum")
+  
+combined.df <- rbind(combined.df.50, combined.df.40)
 
 ```
+
+
+So that's the data all combined, but now it has to be cleaned up considerably
+
+1) remove all of the slashes and backslashes everywhere to have data that we can actually read and parse properly with later commands
+2) Extract the biological data from the participants, which is on line 4 of each participant's dataframe, then put it back into the main dataframe as the Age and Gender columns
+3) Add a unique participantID column (from the filenames)
+4) Trim down to the required columns and re-order them
+5) Delete the useless rows
+6) Make sure the columns are all the right data types
+7) Delete Wonky data- participant 7gtriiTixvBaQ has some impossible values- something went wrong during that run of the experiment
+
+
+```{r cleaning up the data}
+#1
+combined.df[] <- lapply(combined.df, function(x) gsub("\\\\", "", x))
+combined.df[] <- lapply(combined.df, function(x) gsub("[{}]", "", x))
+combined.df[] <- lapply(combined.df, function(x) gsub("\"", "", x))
+
+#2
+biodata <- combined.df[seq(4, nrow(combined.df), 246),]
+biodata <- as.data.frame(biodata$responses)
+colnames(biodata) <- "biodata"
+
+biodata <- separate(biodata, col=biodata, into = c("Age", "Gender", "Specify"), sep = ",")
+
+biodata$Age <- sub("age:", "", biodata$Age)
+biodata$Gender <- sub("gender:", "", biodata$Gender)
+biodata$Specify <- sub("specify:", "", biodata$Specify)
+
+combined.df$Age <- rep(biodata$Age, each = 246)
+combined.df$Gender <- rep(biodata$Gender, each = 246)
+
+#3
+files <- c(files40, files50)
+files <- sub(".csv", "", files)
+
+combined.df$ParticipantID <- rep(files, each= 246)
+
+#4
+AggregatedData <- subset(combined.df, select = c("ParticipantID", "Condition", "Subcondition", "Yoking", "TrialNum", "TrialType", "Block", "BlockTrial", "Image", "Label", "Location", "CorrectResponse", "RespKey", "RespCorr", "RT"))
+
+#5
+AggregatedData <- subset(AggregatedData, TrialNum > 0)
+
+#6
+AggregatedData$ParticipantID <- as.factor(AggregatedData$ParticipantID)
+AggregatedData$Condition <- as.factor(AggregatedData$Condition)
+AggregatedData$Subcondition <- as.factor(AggregatedData$Subcondition)
+AggregatedData$Yoking <- as.factor(AggregatedData$Yoking)
+AggregatedData$TrialType <- as.factor(AggregatedData$TrialType)
+AggregatedData$Location <- as.factor(AggregatedData$Location)
+
+AggregatedData$TrialNum <- as.numeric(AggregatedData$TrialNum)
+AggregatedData$Block <- as.numeric(AggregatedData$Block)
+AggregatedData$BlockTrial <- as.numeric(AggregatedData$BlockTrial)
+AggregatedData$RespCorr <- as.numeric(AggregatedData$RespCorr)
+AggregatedData$RT <- as.numeric(AggregatedData$RT)
+
+
+#7
+AggregatedData <- subset(AggregatedData, ParticipantID != "7gtriiTixvBaQ")
+
+
+```
+
+
+Now we need to output some data for kat, who wants a subset of participants from conditions 1, 2, 3A, and 3B
+
+```{r Data For Kat}
+
+SubData <- subset(AggregatedData, Condition == 1|Condition == 2| Condition == "3A"|Condition == "3B"|Condition == 10)
+
+write.csv(SubData, file=("C:/Users/Alan/Documents/GitHub/Stekic-et-al/Data/KatSample.csv"))
+
+```
+
+
+Now we can aggregate and look at some summary data/graphs to get some idea what is going on in our conditions etc.
+
+For this, we're going to aggregate data across subjects for the interaction of Trial Type x Block within subjects and condition between subjects
+
+We're also going to collapse 3A and 3B and 6A and 6B
+
+We're also goign to collapse all the "arbitrary" conditions 7-9 as they look pretty similar across the board
+
+```{r Aggregating Data for Analyses and Graphs, warning= FALSE}
+
+AggData <- aggregate(RespCorr ~ Condition + TrialType + Block, data=AggregatedData, mean)
+AggData$Block <- as.factor(AggData$Block)
+
+AggData$TrialType <- factor(AggData$TrialType, level = c ("Training", "Testing"))
+
+AggData$Condition <- sub("A", "", AggData$Condition)
+AggData$Condition <- sub("B", "", AggData$Condition)
+AggData$Condition <- sub("8", "7", AggData$Condition)
+AggData$Condition <- sub("9", "7", AggData$Condition)
+
+
+
+AggData$Condition <- factor(AggData$Condition,
+                            level= c("1", "2", "3", "4", "5", "6", "7", "10"),
+                            labels = c("Iconic Category", "Counter-Iconic Category", "Conventional Category",
+                                       "Systematic Iconic", "Systematic Counter-Iconic", "Systematic Conventional",
+                                       "Arbitrary",
+                                       "No Label"))
+
+ggplot(data=AggData, aes(x=Block, y=RespCorr, group=Condition)) +
+  #geom_line(color="#aa0022", size=1.75) +
+  #geom_point(size=1.75, aes(colour = Condition)) +
+  geom_smooth(method='loess', formula= y ~ x, se= FALSE, aes(colour = Condition, 
+                                                             linetype = Condition)) +
+  scale_linetype_manual(values = c("solid", "solid", "solid",
+                          "longdash", "longdash", "longdash", "dotdash",
+                          "dotted")) +
+  scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#0066CC", "#CC0033","#33FF00", "#33FF00", "#000000")) +
+  labs(x="Block", y="Proportion of Correct Responses") +
+  scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TrialType, scales="free", space= "free_x") +
+  theme_tufte()
+
+
+AggDataRT <- aggregate(RT ~ Condition + TrialType + Block, data=AggregatedData, mean)
+AggDataRT$Block <- as.factor(AggData$Block)
+
+AggDataRT$TrialType <- factor(AggDataRT$TrialType, level = c ("Training", "Testing"))
+
+AggDataRT$Condition <- sub("A", "", AggDataRT$Condition)
+AggDataRT$Condition <- sub("B", "", AggDataRT$Condition)
+AggDataRT$Condition <- sub("8", "7", AggDataRT$Condition)
+AggDataRT$Condition <- sub("9", "7", AggDataRT$Condition)
+
+
+
+AggDataRT$Condition <- factor(AggDataRT$Condition,
+                            level= c("1", "2", "3", "4", "5", "6", "7", "10"),
+                            labels = c("Iconic Category", "Counter-Iconic Category", "Conventional Category",
+                                       "Systematic Iconic", "Systematic Counter-Iconic", "Systematic Conventional",
+                                       "Arbitrary",
+                                       "No Label"))
+
+ggplot(data=AggDataRT, aes(x=Block, y=RT, group=Condition)) +
+  #geom_line(color="#aa0022", size=1.75) +
+  #geom_point(size=1.75, aes(colour = Condition)) +
+  geom_line(method='loess', formula= y ~ x, se= FALSE, aes(colour = Condition, 
+                                                             linetype = Condition)) +
+  scale_linetype_manual(values = c("solid", "solid", "solid",
+                          "longdash", "longdash", "longdash", "dotdash",
+                          "dotted")) +
+  scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#0066CC", "#CC0033","#33FF00", "#33FF00", "#000000")) +
+  labs(x="Block", y="Proportion of Correct Responses") +
+  #scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TrialType, scales="free", space= "free_x") +
+  theme_tufte()
+  
+
+```
+
+
+So there are definitely some fucky values for response times- one notable one is a response time of -3595188 milliseconds (negative 35,951 seconds, or approximately -10 hours... don't know how that happens) which is why you see the *huge* dip above for Block 4 of Condition 4- it's such a huge value it drags the whole things down
+
+But there is also a really big rrange of overall response times
+
+It turns out, in fact, that there is such a broad range of Response Tiems that we can't sensibly plot a histograph ro density plot, so lets throw out some of that data
+
+```{r Cleaning up RT data}
+
+library(outliers)
+plot(density(AggregatedData$RT))
+
+#Remove Negative RTs, which are technically impossible (and its curious how they are being recorded as such)
+AggregatedDataTrim <- subset(AggregatedData, RT > 0)
+plot(density(AggregatedDataTrim$RT))
+
+#So that doesn't work great, because there are still extreme positive values- up to 2460568 ms
+#There are principled ways to make a cutoff, but I think we want to start wtih dropping trials that take over 30 seconds
+AggregatedDataTrim <- subset(AggregatedDataTrim, RT<30000)
+plot(density(AggregatedDataTrim$RT))
+
+#That gives us something nicer, but we can see the tail is pretty much gone at around 10 seconds, so for the cleanest data to look at let's cut things off there
+
+AggregatedDataTrim <- subset(AggregatedDataTrim, RT<10000)
+plot(density(AggregatedDataTrim$RT))
+
+#Now we can plot our RT data without it looking totally wonky
+
+AggDataRT2 <- aggregate(RT ~ Condition + TrialType + Block, data=AggregatedDataTrim, mean)
+AggDataRT2$Block <- as.factor(AggDataRT2$Block)
+
+AggDataRT2$TrialType <- factor(AggDataRT2$TrialType, level = c ("Training", "Testing"))
+
+AggDataRT2$Condition <- sub("A", "", AggDataRT2$Condition)
+AggDataRT2$Condition <- sub("B", "", AggDataRT2$Condition)
+AggDataRT2$Condition <- sub("8", "7", AggDataRT2$Condition)
+AggDataRT2$Condition <- sub("9", "7", AggDataRT2$Condition)
+
+
+
+AggDataRT2$Condition <- factor(AggDataRT2$Condition,
+                            level= c("1", "2", "3", "4", "5", "6", "7", "10"),
+                            labels = c("Iconic Category", "Counter-Iconic Category", "Conventional Category",
+                                       "Systematic Iconic", "Systematic Counter-Iconic", "Systematic Conventional",
+                                       "Arbitrary",
+                                       "No Label"))
+
+ggplot(data=AggDataRT2, aes(x=Block, y=RT, group=Condition)) +
+  #geom_line(color="#aa0022", size=1.75) +
+  #geom_point(size=1.75, aes(colour = Condition)) +
+  geom_smooth(method='loess', formula= y ~ x, se= FALSE, aes(colour = Condition, 
+                                                             linetype = Condition)) +
+  scale_linetype_manual(values = c("solid", "solid", "solid",
+                          "longdash", "longdash", "longdash", "dotdash",
+                          "dotted")) +
+  scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#0066CC", "#CC0033","#33FF00", "#33FF00", "#000000")) +
+  labs(x="Block", y="Response Time") +
+  #scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TrialType, scales="free", space= "free_x") +
+  theme_tufte()
+
+```
+
+
+
+Kat wants some plots just for conditions 1-3 and 10, so lets do those
+
+```{r Kat Plots, warning= FALSE}
+
+AggregatedDataKat <- AggregatedDataTrim
+AggregatedDataKat$Condition <- sub("A", "", AggregatedDataKat$Condition)
+AggregatedDataKat$Condition <- sub("B", "", AggregatedDataKat$Condition)
+
+AggregatedDataKat$Condition <- as.factor(AggregatedDataKat$Condition)
+
+SubDataKat <- subset(AggregatedDataKat, Condition == 1|Condition == 2| Condition == 3|Condition == 10)
+
+AggDataKatCorr <- aggregate(RespCorr ~ Condition + TrialType + Block, data= SubDataKat, mean)
+AggDataKatRT <- aggregate(RT ~ Condition + TrialType + Block, data= SubDataKat, mean)
+
+
+AggDataKatCorr$Block <- as.factor(AggDataKatCorr$Block)
+
+AggDataKatCorr$TrialType <- factor(AggDataKatCorr$TrialType, level = c ("Training", "Testing"))
+
+AggDataKatCorr$Condition <- factor(AggDataKatCorr$Condition,
+                            level= c("1", "2", "3", "10"),
+                            labels = c("Iconic Category", "Counter-Iconic Category", "Conventional Category",
+                                       "No Label"))
+
+ggplot(data=AggDataKatCorr, aes(x=Block, y=RespCorr, group=Condition)) +
+  #geom_line(color="#aa0022", size=1.75) +
+  #geom_point(size=1.75, aes(colour = Condition)) +
+  geom_smooth(method='loess', formula= y ~ x, se= FALSE, aes(colour = Condition, 
+                                                             linetype = Condition)) +
+  scale_linetype_manual(values = c("solid", "solid", "solid",
+                          "dotted")) +
+  scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#000000")) +
+  labs(x="Block", y="Proportion of Correct Responses") +
+  scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TrialType, scales="free", space= "free_x") +
+  theme_tufte()
+
+AggDataKatRT$Block <- as.factor(AggDataKatRT$Block)
+
+AggDataKatRT$TrialType <- factor(AggDataKatRT$TrialType, level = c ("Training", "Testing"))
+
+AggDataKatRT$Condition <- factor(AggDataKatRT$Condition,
+                            level= c("1", "2", "3", "10"),
+                            labels = c("Iconic Category", "Counter-Iconic Category", "Conventional Category",
+                                       "No Label"))
+
+ggplot(data=AggDataKatRT, aes(x=Block, y=RT, group=Condition)) +
+  #geom_line(color="#aa0022", size=1.75) +
+  #geom_point(size=1.75, aes(colour = Condition)) +
+  geom_smooth(method='loess', formula= y ~ x, se= FALSE, aes(colour = Condition, 
+                                                             linetype = Condition)) +
+  scale_linetype_manual(values = c("solid", "solid", "solid",
+                          "dotted")) +
+  scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#000000")) +
+  labs(x="Block", y="Average Response Time") +
+  #scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TrialType, scales="free", space= "free_x") +
+  theme_tufte()
+
+
+```
+
+
+So, these are super interesting, but we also want to look at generalisation - in the testing trials participants are introduced to novel exemplars of the categories- what we really need to know is how well they perform on these new stimuli
+
+Unfortunately, we're dumb and didn't encode that anywhere in the stimlist files, so we need to write some code to figure out, for each participant, what images are new and what images are not
+
+```{r Novel Exemplars}
+
+participantIDs <- unique(AggregatedData$ParticipantID)
+participantdata <- list()
+participantdata.training <- list()
+participantdata.testing <- list()
+
+testingtrials <- list()
+trainingtrials <- list()
+
+
+for (participant in participantIDs) {
+  
+  participantdata <- subset(AggregatedData, ParticipantID == participant)
+  participantdata.training <- subset(participantdata, TrialType == "Training")
+  participantdata.testing <- subset(participantdata, TrialType == "Testing")
+  
+  
+  TrainingFigures <- unique(participantdata.training$Image)
+  
+  participantdata.training$Generalisation <- NA
+  
+  participantdata.testing$Generalisation <- ifelse(
+    participantdata.testing$Image %in% TrainingFigures,
+    "Old",
+    "New")
+  
+  trainingtrials <- rbind(trainingtrials, participantdata.training)
+  testingtrials <- rbind(testingtrials, participantdata.testing)
+  
+  
+}
+
+AggregatedData2 <- rbind(trainingtrials, testingtrials)
+
+```
+
+Okay that's that calculated, now we just need to do all of the other manipulations of excluding response times etc to take a look at some relatively cleaner data
+
+```{r A second look, warning= FALSE}
+
+AggregatedData2$Block <- as.factor(AggregatedData2$Block)
+AggregatedData2$TrialType <- factor(AggregatedData2$TrialType, level = c ("Training", "Testing"))
+AggregatedData2$TrialType2 <- paste(AggregatedData2$TrialType, AggregatedData2$Generalisation, sep = "-")
+AggregatedData2$Generalisation <- as.factor(AggregatedData2$Generalisation)
+
+AggregatedData2$TrialType2 <- factor(AggregatedData2$TrialType2, level = c ("Training-NA", "Testing-Old", "Testing-New"),
+                                     labels = c("Training", "Testing-Old", "Testing-New"))
+
+AggregatedData2$Condition <- sub("A", "", AggregatedData2$Condition)
+AggregatedData2$Condition <- sub("B", "", AggregatedData2$Condition)
+AggregatedData2$Condition <- sub("8", "7", AggregatedData2$Condition)
+AggregatedData2$Condition <- sub("9", "7", AggregatedData2$Condition)
+
+AggregatedData2$Condition <- factor(AggregatedData2$Condition,
+                            levels= c("1", "2", "3", "4", "5", "6", "7", "10"),
+                            labels = c("Iconic Category", "Counter-Iconic Category", "Conventional Category",
+                                       "Systematic Iconic", "Systematic Counter-Iconic", "Systematic Conventional",
+                                       "Arbitrary",
+                                       "No Label"))
+
+#Trim out weird RTs
+AggregatedData2 <- subset(AggregatedData2, RT > 0)
+AggregatedData2 <- subset(AggregatedData2, RT < 10000)
+
+
+
+AggData2 <- aggregate(RespCorr ~ Condition + TrialType + Block + TrialType2 , data=AggregatedData2, mean, na.rm= FALSE)
+
+
+ggplot(data=AggData2, aes(x=Block, y=RespCorr, group=Condition)) +
+  #geom_line(color="#aa0022", size=1.75) +
+  #geom_point(size=1.75, aes(colour = Condition)) +
+  geom_smooth(method='loess', formula= y ~ x, se= FALSE, aes(colour = Condition, 
+                                                             linetype = TrialType2)) +
+ # scale_linetype_manual(values = c("solid", "solid", "solid",
+  #                        "longdash", "longdash", "longdash", "dotdash",
+  #                        "dotted")) +
+  scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#0066CC", "#CC0033","#33FF00", "#33FF00", "#000000")) +
+  labs(x="Block", y="Proportion of Correct Responses") +
+  scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TrialType2, scales="free", space= "free_x") +
+  theme_tufte()
+
+
+
+```
+
+
+
+So now lets look just at the data that kat wants
+
+```{r Cleaned up katdata, warning = FALSE}
+
+KatData2 <- subset(AggregatedData2, Condition == "Iconic Category"|Condition == "Counter-Iconic Category"| Condition == "Conventional Category"|Condition == "No Label")
+
+KatDataAgg2 <- aggregate(RespCorr ~ Condition + TrialType + Block + TrialType2 , data=KatData2, mean)
+
+ggplot(data=KatDataAgg2, aes(x=Block, y=RespCorr, group=Condition)) +
+  #geom_line(color="#aa0022", size=1.75) +
+  #geom_point(size=1.75, aes(colour = Condition)) +
+  geom_smooth(method='loess', formula= y ~ x, se= FALSE, aes(colour = Condition)) +
+ # scale_linetype_manual(values = c("solid", "solid", "solid",
+  #                        "longdash", "longdash", "longdash", "dotdash",
+  #                        "dotted")) +
+  scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#000000")) +
+  labs(x="Block", y="Proportion of Correct Responses") +
+  scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TrialType2, scales="free", space= "free_x") +
+  theme_tufte()
+
+KatDataAgg2RT <- aggregate(RT ~ Condition + TrialType + Block + TrialType2 , data=KatData2, mean)
+
+ggplot(data=KatDataAgg2RT, aes(x=Block, y=RT, group=Condition)) +
+  #geom_line(color="#aa0022", size=1.75) +
+  #geom_point(size=1.75, aes(colour = Condition)) +
+  geom_smooth(method='loess', formula= y ~ x, se= FALSE, aes(colour = Condition)) +
+ # scale_linetype_manual(values = c("solid", "solid", "solid",
+  #                        "longdash", "longdash", "longdash", "dotdash",
+  #                        "dotted")) +
+  scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#000000")) +
+  labs(x="Block", y="Average Response Time") +
+  #scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TrialType2, scales="free", space= "free_x") +
+  theme_tufte()
+
+
+
+```
+
+
+
+
+Finally lets take a look at this cleaned up data wiht some of the deviation plotted, which means we need to aggregated within participants, rather than between them
+
+```{r data with variance, warning = FALSE}
+
+KatDataAgg3 <- aggregate(RespCorr ~ ParticipantID + Condition + TrialType + Block + TrialType2 , data=KatData2, mean)
+
+ggplot(data=KatDataAgg3, aes(x=Block, y=RespCorr, group=Condition)) +
+  #geom_line(color="#aa0022", size=1.75) +
+  #geom_point(size=0.5, aes(colour = Condition)) +
+  geom_smooth(method='loess', formula= y ~ x, se= TRUE, aes(colour = Condition)) +
+ # scale_linetype_manual(values = c("solid", "solid", "solid",
+  #                        "longdash", "longdash", "longdash", "dotdash",
+  #                        "dotted")) +
+  scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#000000")) +
+  labs(x="Block", y="Proportion of Correct Responses") +
+  scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TrialType2, scales="free", space= "free_x") +
+  theme_tufte()
+
+KatDataAgg3RT <- aggregate(RT ~ ParticipantID + Condition + TrialType + Block + TrialType2 , data=KatData2, mean)
+
+ggplot(data=KatDataAgg3RT, aes(x=Block, y=RT, group=Condition)) +
+  #geom_line(color="#aa0022", size=1.75) +
+  #geom_point(size=1.75, aes(colour = Condition)) +
+  geom_smooth(method='loess', formula= y ~ x, se= TRUE, aes(colour = Condition)) +
+ # scale_linetype_manual(values = c("solid", "solid", "solid",
+  #                        "longdash", "longdash", "longdash", "dotdash",
+  #                        "dotted")) +
+  scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#000000")) +
+  labs(x="Block", y="Average Response Time") +
+  #scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TrialType2, scales="free", space= "free_x") +
+  theme_tufte()
+
+```
+
+
+
+
+
+
+
+
+
 
