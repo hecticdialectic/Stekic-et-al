@@ -1,0 +1,27 @@
+Study,Condition,TrialType,Block,RespCorr
+Lupyan et al. (2007),Conventional Category,Testing,1,0.926
+Lupyan et al. (2007),Conventional Category,Testing,2,0.94
+Lupyan et al. (2007),Conventional Category,Testing,3,0.937
+Lupyan et al. (2007),Conventional Category,Testing,4,0.94
+Lupyan et al. (2007),Conventional Category,Training,1,0.72
+Lupyan et al. (2007),Conventional Category,Training,2,0.816
+Lupyan et al. (2007),Conventional Category,Training,3,0.86
+Lupyan et al. (2007),Conventional Category,Training,4,0.885
+Lupyan et al. (2007),Conventional Category,Training,5,0.914
+Lupyan et al. (2007),Conventional Category,Training,6,0.9
+Lupyan et al. (2007),Conventional Category,Training,7,0.916
+Lupyan et al. (2007),Conventional Category,Training,8,0.932
+Lupyan et al. (2007),Conventional Category,Training,9,0.933
+Lupyan et al. (2007),No Label,Testing,1,0.91
+Lupyan et al. (2007),No Label,Testing,2,0.89
+Lupyan et al. (2007),No Label,Testing,3,0.875
+Lupyan et al. (2007),No Label,Testing,4,0.88
+Lupyan et al. (2007),No Label,Training,1,0.616
+Lupyan et al. (2007),No Label,Training,2,0.69
+Lupyan et al. (2007),No Label,Training,3,0.755
+Lupyan et al. (2007),No Label,Training,4,0.759
+Lupyan et al. (2007),No Label,Training,5,0.822
+Lupyan et al. (2007),No Label,Training,6,0.845
+Lupyan et al. (2007),No Label,Training,7,0.91
+Lupyan et al. (2007),No Label,Training,8,0.89
+Lupyan et al. (2007),No Label,Training,9,0.903

@@ -8,6 +8,7 @@ output: html_document
 ```{r setup}
 library(data.table)
 library(tidyverse)
+library(ggthemes)
 
 setwd("C:/Users/Alan/Documents/GitHub/Stekic-et-al/Data/50s/")
 files50  <- list.files(pattern = '\\.csv')
@@ -493,10 +494,322 @@ ggplot(data=KatDataAgg3RT, aes(x=Block, y=RT, group=Condition)) +
 
 
 
+Lets take a look just at our arbitrary conditions (conditions 7-9) to see if we can justify collapsing them
+
+```{r Data Tidying 2}
+
+#Cut out outlier trials for RT
+library(outliers)
+plot(density(AggregatedData$RT))
+
+AggregatedDataTrim <- subset(AggregatedData, RT > 0)
+plot(density(AggregatedDataTrim$RT))
+AggregatedDataTrim <- subset(AggregatedDataTrim, RT<30000)
+plot(density(AggregatedDataTrim$RT))
+AggregatedDataTrim <- subset(AggregatedDataTrim, RT<10000)
+plot(density(AggregatedDataTrim$RT))
+
+#Add generalisation information
+participantIDs <- unique(AggregatedDataTrim$ParticipantID)
+participantdata <- list()
+participantdata.training <- list()
+participantdata.testing <- list()
+
+testingtrials <- list()
+trainingtrials <- list()
+
+
+for (participant in participantIDs) {
+  
+  participantdata <- subset(AggregatedDataTrim, ParticipantID == participant)
+  participantdata.training <- subset(participantdata, TrialType == "Training")
+  participantdata.testing <- subset(participantdata, TrialType == "Testing")
+  
+  
+  TrainingFigures <- unique(participantdata.training$Image)
+  
+  participantdata.training$Generalisation <- NA
+  
+  participantdata.testing$Generalisation <- ifelse(
+    participantdata.testing$Image %in% TrainingFigures,
+    "Old",
+    "New")
+  
+  trainingtrials <- rbind(trainingtrials, participantdata.training)
+  testingtrials <- rbind(testingtrials, participantdata.testing)
+  
+  
+}
+
+AggregatedData2 <- rbind(trainingtrials, testingtrials)
+
+
+#Factor levels, adding Trial Type 2
+
+AggregatedData2$Block <- as.factor(AggregatedData2$Block)
+AggregatedData2$TrialType <- factor(AggregatedData2$TrialType, level = c ("Training", "Testing"))
+AggregatedData2$TrialType2 <- paste(AggregatedData2$TrialType, AggregatedData2$Generalisation, sep = "-")
+AggregatedData2$Generalisation <- as.factor(AggregatedData2$Generalisation)
+
+AggregatedData2$TrialType2 <- factor(AggregatedData2$TrialType2, level = c ("Training-NA", "Testing-Old", "Testing-New"),
+                                     labels = c("Training", "Testing-Old", "Testing-New"))
+
+```
+
+
+```{r Looking at Arbitrary Data, warning = FALSE}
+#Subset to just Arbitrary Data
+ArbData <- subset(AggregatedData2, Condition== 7|Condition == 8|Condition ==9)
+
+ArbDataAgg<- aggregate(RespCorr ~ ParticipantID + Condition + TrialType + Block + TrialType2 , data=ArbData, mean)
+ArbDataAgg$Condition <- factor(ArbDataAgg$Condition)
+
+#Most basic model
+library(lme4)
+library(lmerTest)
+ArbData.Model1 <- lmer(RespCorr ~ Condition * Block * TrialType2 + (1|ParticipantID), data=ArbDataAgg)
+summary(ArbData.Model1)
+
+#use step to simplify model
+
+stepFirst <- step(ArbData.Model1)
+ArbData.Model2 <- get_model(stepFirst)
+summary(ArbData.Model2)
+
+#These models show no effect of Condition - so we can indeed aggregate all of our arbitrary conditions 7 8 and 9 for subsequent analyses
+#To show that clearly, lets graph them quickly
+ggplot(data=ArbDataAgg, aes(x=Block, y=RespCorr, group=Condition)) +
+  #geom_line(color="#aa0022", size=1.75) +
+  #geom_point(size=0.5, aes(colour = Condition)) +
+  geom_smooth(method='loess', formula= y ~ x, se= TRUE, aes(colour = Condition)) +
+ # scale_linetype_manual(values = c("solid", "solid", "solid",
+  #                        "longdash", "longdash", "longdash", "dotdash",
+  #                        "dotted")) +
+  scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00")) +
+  labs(x="Block", y="Proportion of Correct Responses") +
+  scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TrialType2, scales="free", space= "free_x") +
+  theme_tufte()
+
+#We should also verify whether this is true for Response Times
+
+ArbDataRTAgg<- aggregate(RT ~ ParticipantID + Condition + TrialType + Block + TrialType2 , data=ArbData, mean)
+ArbDataRTAgg$Condition <- factor(ArbDataAgg$Condition)
+
+ArbData.ModelRT1 <- lmer(RT ~ Condition * Block * TrialType2 + (1|ParticipantID), data=ArbDataRTAgg)
+summary(ArbData.ModelRT1)
+
+stepFirstRT <- step(ArbData.ModelRT1)
+ArbData.ModelRT2 <- get_model(stepFirstRT)
+summary(ArbData.ModelRT2)
+
+#So for RT we get an effect of condition, but stepwise model selection eliminates this effect
+
+ggplot(data=ArbDataRTAgg, aes(x=Block, y=RT, group=Condition)) +
+  #geom_line(color="#aa0022", size=1.75) +
+  #geom_point(size=1.75, aes(colour = Condition)) +
+  geom_smooth(method='loess', formula= y ~ x, se= TRUE, aes(colour = Condition)) +
+ # scale_linetype_manual(values = c("solid", "solid", "solid",
+  #                        "longdash", "longdash", "longdash", "dotdash",
+  #                        "dotted")) +
+  scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00")) +
+  labs(x="Block", y="Average Response Time") +
+  #scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TrialType2, scales="free", space= "free_x") +
+  theme_tufte()
+
+
+```
 
 
 
+So, the above demonstrates that we can collapse our arbitrary conditions- there doesn't seem to be much interesting going on between conditions
 
+```{r Collapsing Arbitrary Conditions}
+
+AggregatedData3.ArbColl <- AggregatedData2
+
+#Coding all arbitrary conditions as condition 7
+AggregatedData3.ArbColl$Condition <- sub("8", "7", AggregatedData3.ArbColl$Condition)
+AggregatedData3.ArbColl$Condition <- sub("9", "7", AggregatedData3.ArbColl$Condition)
+
+
+```
+
+The other main groups to try to collapse are 3A vs. 3B and 6A vs. 6B- lets quickly output those as a graph and see what we have going on
+
+```{r 3A vs 3B, 6A vs 6B graphs, warning = FALSE}
+
+AggregatedData4.3AB6AB <- subset(AggregatedData3.ArbColl, Condition == "3A"|Condition == "3B"|Condition == "6A"|Condition == "6B")
+
+AggregatedData4.3AB6AB$Condition <- factor(AggregatedData4.3AB6AB$Condition)
+
+ABAgg<- aggregate(RespCorr ~ ParticipantID + Condition + TrialType + Block + TrialType2 , data=AggregatedData4.3AB6AB, mean)
+ABAggRT<- aggregate(RT ~ ParticipantID + Condition + TrialType + Block + TrialType2 , data=AggregatedData4.3AB6AB, mean)
+
+#Basic Model
+ABData.Model1 <- lmer(RespCorr ~ Condition * Block * TrialType2 + (1|ParticipantID), data=ABAgg)
+summary(ABData.Model1)
+
+#use step to simplify model
+
+stepFirst <- step(ABData.Model1)
+ABData.Model2 <- get_model(stepFirst)
+summary(ABData.Model2)
+
+
+```
+
+There are still some differences between the conditions here - lets see if they are because of differences between 3 and 6 conditions generally or A/B subconditions
+
+```{r Graphing AB, warning = FALSE}
+
+#This may be easy enough to spot in a graph- so lets take a look
+ggplot(data=ABAgg, aes(x=Block, y=RespCorr, group=Condition)) +
+  #geom_line(color="#aa0022", size=1.75) +
+  #geom_point(size=0.5, aes(colour = Condition)) +
+  geom_smooth(method='loess', formula= y ~ x, se= TRUE, aes(colour = Condition)) +
+ # scale_linetype_manual(values = c("solid", "solid", "solid",
+  #                        "longdash", "longdash", "longdash", "dotdash",
+  #                        "dotted")) +
+ # scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00",)) +
+  labs(x="Block", y="Proportion of Correct Responses") +
+  scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TrialType2, scales="free", space= "free_x") +
+  theme_tufte()
+
+```
+
+It doesn't seem super clear, from looking at the graphs, what is going on here- for training trials 3A and 3B look identical, as do 6A and 6B, but for testing trials both new and old the "B" conditions seem to sit on top of the "A" conditions
+
+It's not necessarily clear what that would mean, but I can't particularly think of an explanation for that data. To rehearse, the A vs. B difference is simply which set of conventional labels is assigned to jagged vs. curvy images - so really we'd expect if there were differences that they would show up in the earliest learning trials- the fact that they show up in testing trials but not training trials is hard to explain, so for now we'll leave it and collapse these as well
+
+```{r Collapsing AB}
+AggregatedData5.ABColl <- AggregatedData3.ArbColl
+
+AggregatedData5.ABColl$Condition <- sub("A", "", AggregatedData5.ABColl$Condition)
+AggregatedData5.ABColl$Condition <- sub("B", "", AggregatedData5.ABColl$Condition)
+AggregatedData5.ABColl$Condition <- factor(AggregatedData5.ABColl$Condition)
+
+```
+
+So now we can start to look at something more like a complete model, which we'll first do including "Condition" as a variable of its own (rather than as a crossing of other variables)
+
+```{r first look full data, warning=FALSE}
+#Relevel and rename the condition factor
+AggregatedData5.ABColl$Condition <- factor(AggregatedData5.ABColl$Condition,
+                            level= c("1", "2", "3", "4", "5", "6", "7", "10"),
+                            labels = c("Iconic Category", "Counter-Iconic Category", "Conventional Category",
+                                       "Systematic Iconic", "Systematic Counter-Iconic", "Systematic Conventional",
+                                       "Arbitrary",
+                                       "No Label"))
+
+TrimAgg<- aggregate(RespCorr ~ ParticipantID + Condition + Subcondition + TrialType + Block + TrialType2 , data=AggregatedData5.ABColl, mean)
+TrimRTAgg <- aggregate(RT ~ ParticipantID + Condition +Subcondition+  TrialType + Block + TrialType2 , data=AggregatedData5.ABColl, mean)
+
+
+
+ggplot(data=TrimAgg, aes(x=Block, y=RespCorr, group=Condition)) +
+  #geom_line(color="#aa0022", size=1.75) +
+  #geom_point(size=0.5, aes(colour = Condition)) +
+  geom_smooth(method='loess', formula= y ~ x, se= TRUE, aes(colour = Condition, linetype= Condition)) +
+  scale_linetype_manual(values = c("solid", "solid", "solid",
+                      "longdash", "longdash", "longdash", "dotdash",
+                      "dotted")) +
+  scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#0066CC", "#CC0033","#33FF00", "#33FF00", "#000000")) +
+  labs(x="Block", y="Proportion of Correct Responses") +
+  scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TrialType2, scales="free", space= "free_x") +
+  theme_tufte()
+
+```
+
+```{r First FUll Model}
+#Basic Model
+TrimAgg$Block <- as.numeric(as.character(TrimAgg$Block))
+
+TrimData.Model1 <- lmer(RespCorr ~ Condition *Subcondition * Block * TrialType2 + (1|ParticipantID), data=TrimAgg)
+summary(TrimData.Model1)
+
+#use step to simplify model
+
+stepFirst <- step(TrimData.Model1)
+TrimData.Model2 <- get_model(stepFirst)
+summary(TrimData.Model2)
+
+
+```
+
+SO there are definitely some differences that are pretty substantial, and some that get washed out by the step function, as well as some pretty surprising bits, like the fact that there deosn't seem to be a main effect of trial type where on test trials new items are harder than old items
+
+The results as they are shown also don't give us very much to go by for the post-hoc comparisons of which specific conditions are better than eaach other. Those are obviously things that we can get at, but are probably not worth getting at with a rough-and-ready approach
+
+So instead lets try to break this down such that we can see main effects of systematicity, for example, rather than the conditions, which are of course themselves interactions of the effects we're interested in
+
+```{r Reclassifying Data}
+
+#We'er going to add some columns for our factors
+TrimAgg2 <-  TrimAgg
+library(plyr)
+library(dplyr)
+
+#Category vs Individual
+TrimAgg2$CatvInd <- mapvalues(TrimAgg2$Condition,
+                              from= unique(TrimAgg2$Condition),
+                              to= c(rep("Category", 3), rep("Individual", 4), "None")
+                              )
+
+#Systematic vs Non
+TrimAgg2$SysvArb <- mapvalues(TrimAgg2$Condition,
+                              from= unique(TrimAgg2$Condition),
+                              to= c(rep("Category2", 3), rep("Systematic", 3), "Non-Systematic", "None2")
+                              )
+
+#Iconicity
+TrimAgg2$Iconicity <- mapvalues(TrimAgg2$Condition,
+                              from= unique(TrimAgg2$Condition),
+                              to= c("Iconic", "Counter-Iconic", "Conventional", "Iconic", "Counter-Iconic", "Conventional","Arbitrary", "None3")
+                              )
+
+#And now pop out a new model
+#So here for this model we're going to pop out subcondition (whether they approach or retreat from Jagged and Curved respectively) and Condition (replaced with our new partially crossed factors)
+
+#I also added in "family = binomial" because I've forgotten to do that up until now (this also means moving to using "glmer" from afex)
+
+afex.noInt <- mixed(RespCorr ~ CatvInd + SysvArb + Iconicity+  Block + TrialType2 + (1|ParticipantID),
+                         data=TrimAgg2,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                         method = 'LRT',
+                         progress=FALSE)
+
+
+afex.noInt$anova_table
+
+
+```
+
+So a basic model with no interactions is definitely pretty crappy- it looks good- some significant main effects, but when we look at the ChiSquared values of 0 that's a pretty good indication that something is going wrong
+
+We get even grosser results when we include our interactions - note the below model is tagged include= FALSE because it takes a whole day to run and doesn't in any way converge
+```{r Interaction model, include= FALSE}
+
+
+afex.full <- mixed(RespCorr ~ CatvInd * SysvArb * Iconicity *  Block * TrialType2 + (1|ParticipantID),
+                         data=TrimAgg2,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                         method = 'LRT',
+                         progress=FALSE)
+
+
+afex.full$anova_table
+
+```
+
+# Tackling our Data one step at a time
+
+The above sections have a number of errors, including the fact that we're trying to conduct binomial LMER on aggregated data, which is actually a no-no
 
 
 
