@@ -1,0 +1,22 @@
+
+DataNew <- read.csv("C:/Users/775/Desktop/Stekic-et-al/Data/CleanData.csv")
+
+split(DataNew, DataNew$TrialType, drop=FALSE)
+
+DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
+DataNew$Condition <- as.factor(DataNew$Condition)
+
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "4"|Condition == "10"| Condition == "5"| 
+                       Condition == "6A"|Condition == "7"|Condition == "8"|Condition == "9")
+
+#colnames(DataSubset) <- c("ParticipantID", "TrialType", "RessCorr", "RT", "Condition")
+
+Model.Ress.Corr <- glmer(RespCorr ~ Condition +
+                          (1|ParticipantID),
+                          data=DataSubset, 
+                          family= binomial)
+
+summary(Model.Ress.Corr)
+anova(Model.Ress.Corr)
+
+summary(glht(Model.Ress.Corr, linfct = mcp(Condition = "Tukey")), test = adjusted("holm"))
