@@ -1,0 +1,57 @@
+---
+title: "Data for Master Thesis"
+output: 
+  html_document:
+    keep_md: true
+    theme: journal
+    toc: true
+    toc_depth: 2
+    toc_float: 
+      collapsed: false
+    code_folding: hide
+---
+
+####Loading Libraries
+```{r}
+library(data.table)
+library(tidyverse)
+library(ggthemes)
+library(outliers)
+library(lme4)
+library(lmerTest)
+library(afex)
+library(kableExtra)
+library(agricolae)
+library(multcomp)
+library(devtools)
+```
+
+####Plotting Correctness through Trial type (it works with CleanData4!!!)
+```{r}
+
+DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "10"| Condition == "9")
+
+DataSubset$TrialType2 = factor(DataSubset$TrialType2, levels=c("Training","Testing-Old","Testing-New"), labels=c("Training","Testing-Old","Testing-New")) 
+
+ggplot(DataSubset, aes(x= Block, y= RespCorr, colour= Condition, linetype = Condition)) + 
+  geom_smooth(aes(colour = Condition),size = 1.0,se = TRUE, method= 'loess', formula =  y~x)+
+  
+  scale_linetype_manual(values = c("solid", "dotdash",
+                                    "solid", "dotdash",
+                                    "longdash")) +
+  
+  scale_color_manual(values= c("#0066CC", "#000000",
+                               "#33FF00", "#33FF00", 
+                                "#CC0033")) +
+                               
+  ggtitle("Performance by Block") +
+  labs(x="Block", y="Proportion of Correctness") +
+  facet_grid(~TrialType2, scales="free", space= "free_x" ) +
+  theme(axis.title.y = element_text(size=12,  color="#666666")) +
+  theme(axis.text = element_text(size=8)) +
+  theme(plot.title = element_text(size=16, face="bold", hjust=0, color="#666666")) +
+  theme(strip.text.x = element_text(size = 8, colour = "black"))
+
+```

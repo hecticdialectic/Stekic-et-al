@@ -88,7 +88,7 @@ summary(glht(Model.Ress.Corr.Testing, linfct = mcp(Condition = "Tukey")), test =
 
 ####Plotting Correctness for Training
 ```{r}
-CleanData2 <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+CleanData2 <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 DataSubset <- subset(CleanData2, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "4"|Condition == "10"| Condition == "5"| 
                        Condition == "6A"|Condition == "7"|Condition == "8"|Condition == "9")
@@ -118,12 +118,12 @@ ggplot(DataTraining, aes(x= Block, y= RespCorr, colour= Condition, linetype = Co
 
 ####Plotting Correctness for Testing
 ```{r}
-CleanData2 <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+CleanData2 <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 DataSubset <- subset(CleanData2, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "4"|Condition == "10"| Condition == "5"| 
                        Condition == "6A"|Condition == "7"|Condition == "8"|Condition == "9")
 
-DataTesting <- subset(DataSubset, TrialType == "Testing")
+DataTesting <- subset(DataSubset, TrialType2 == "Testing-Old" | TrialType2 == "Testing-New")
 
 ggplot(DataTesting, aes(x= Block, y= RespCorr, colour= Condition, linetype = Condition)) + 
   geom_smooth(aes(colour = Condition),size = 1.0,se = TRUE, method= 'loess', formula =  y~x)+
@@ -139,6 +139,7 @@ ggplot(DataTesting, aes(x= Block, y= RespCorr, colour= Condition, linetype = Con
                                
   ggtitle("Test Performance") +
   labs(x="Block", y="Proportion of Correctness") +
+  facet_grid(~TrialType2, scales="free", space= "free_x") +
   theme(axis.title.y = element_text(size=12,  color="#666666")) +
   theme(axis.text = element_text(size=8)) +
   theme(plot.title = element_text(size=16, face="bold", hjust=0, color="#666666")) +
@@ -169,7 +170,7 @@ anova(Model.Ress.Corr.Training)
 summary(glht(Model.Ress.Corr.Training, linfct = mcp(Condition = "Tukey")), test = adjusted("holm"))
 ```
 
-####Trying to model Correctness Testing data with Condition and Block as fixed factors
+####Modeling Correctness Testing data with Condition and Block as fixed factors
 ```{r}
 DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData.csv")
 
@@ -183,7 +184,7 @@ DataTesting <- subset(DataSubset, TrialType == "Testing")
 
 Model.Ress.Corr.Testing <- glmer(RespCorr ~ Condition + Block +
                           (1|ParticipantID),
-                          data=DataTraining, 
+                          data=DataTesting, 
                           family= binomial)
 
 summary(Model.Ress.Corr.Testing)
@@ -193,28 +194,29 @@ anova(Model.Ress.Corr.Testing)
 summary(glht(Model.Ress.Corr.Testing, linfct = mcp(Condition = "Tukey")), test = adjusted("holm"))
 ```
 
-####Trying to plot Correctness through both Training and Testing
-
+####Plotting Correctness through Trial type (it works with CleanData4!!!)
 ```{r}
 
-DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "4"|Condition == "10"| Condition == "5"| 
-                       Condition == "6A"|Condition == "7"|Condition == "8"|Condition == "9")
+DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
-ggplot(DataSubset, aes(x= Block, y= RT, colour= Condition, linetype = Condition)) + 
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "10"| Condition == "9")
+
+DataSubset$TrialType2 = factor(DataSubset$TrialType2, levels=c("Training","Testing-Old","Testing-New"), labels=c("Training","Testing-Old","Testing-New")) 
+
+ggplot(DataSubset, aes(x= Block, y= RespCorr, colour= Condition, linetype = Condition)) + 
   geom_smooth(aes(colour = Condition),size = 1.0,se = TRUE, method= 'loess', formula =  y~x)+
   
-  scale_linetype_manual(values = c("solid", "dotdash", "dotted",
-                                    "solid", "dotdash", "dotted",
-                                    "solid", "dotdash", "dotted","longdash")) +
+  scale_linetype_manual(values = c("solid", "dotdash",
+                                    "solid", "dotdash",
+                                    "longdash")) +
   
-  scale_color_manual(values= c("#0066CC", "#000000", "#0066CC", "#0066CC",
-                               "#33FF00", "#33FF00", "#33FF00", 
-                               "#CC0033", "#CC0033", "#CC0033")) +
-  
+  scale_color_manual(values= c("#0066CC", "#000000",
+                               "#33FF00", "#33FF00", 
+                                "#CC0033")) +
                                
   ggtitle("Performance by Block") +
   labs(x="Block", y="Proportion of Correctness") +
-  facet_grid(~TrialType, scales="free", space= "free_x") + #facet grid works, but it still has a problem with loess
+  facet_grid(~TrialType2, scales="free", space= "free_x" ) +
   theme(axis.title.y = element_text(size=12,  color="#666666")) +
   theme(axis.text = element_text(size=8)) +
   theme(plot.title = element_text(size=16, face="bold", hjust=0, color="#666666")) +
