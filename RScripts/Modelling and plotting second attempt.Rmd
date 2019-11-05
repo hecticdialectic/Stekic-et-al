@@ -1,0 +1,224 @@
+---
+title: "Stekic et al."
+subtitle: 'Data modeling and plotting'
+output: 
+  html_document:
+    keep_md: true
+    theme: journal
+    toc: true
+    toc_depth: 2
+    toc_float: 
+      collapsed: false
+    code_folding: hide
+---
+
+#Introduction
+
+The following is data analysis for Stekic, Kovic, and Nielsen (2019), where we explored the learnability of artificial languages that differed in the relationship between those labels and the objects that they describe. All files for this experiment can be found at our [GitHub Repository](https://github.com/hecticdialectic/Stekic-et-al) and further details of the experimental design can be found at our OSF Repository.
+
+Below in two code chunks we load libraries and read in our files. 
+
+Note that in this document all code is "folded" by default- you can unfold sections (and look at the code) by clicking on the "Code" button on the Top Right of each block.
+
+####Loading Libraries
+```{r}
+library(data.table)
+library(tidyverse)
+library(ggthemes)
+library(outliers)
+library(lme4)
+library(lmerTest)
+library(afex)
+library(kableExtra)
+library(agricolae)
+library(multcomp)
+```
+
+####Modeling Correctness Trainging data with Condition as fixed factor
+```{r}
+DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData.csv")
+
+DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
+DataNew$Condition <- as.factor(DataNew$Condition)
+
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "4"|Condition == "10"| Condition == "5"| 
+                       Condition == "6A"|Condition == "7"|Condition == "8"|Condition == "9")
+
+DataTraining <- subset(DataSubset, TrialType == "Training")
+
+Model.Ress.Corr.Training <- glmer(RespCorr ~ Condition +
+                          (1|ParticipantID),
+                          data=DataTraining, 
+                          family= binomial)
+
+summary(Model.Ress.Corr.Training)
+
+anova(Model.Ress.Corr.Training)
+
+summary(glht(Model.Ress.Corr.Training, linfct = mcp(Condition = "Tukey")), test = adjusted("holm"))
+
+
+```
+
+####Modeling Correctness Test data with Condition as fixed factor
+```{r}
+
+DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData.csv")
+
+DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
+DataNew$Condition <- as.factor(DataNew$Condition)
+
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "4"|Condition == "10"| Condition == "5"| 
+                       Condition == "6A"|Condition == "7"|Condition == "8"|Condition == "9")
+
+DataTest <- subset(DataSubset, TrialType == "Testing")
+
+
+Model.Ress.Corr.Testing <- glmer(RespCorr ~ Condition +
+                          (1|ParticipantID),
+                          data=DataTest, 
+                          family= binomial)
+
+summary(Model.Ress.Corr.Testing)
+
+anova(Model.Ress.Corr.Testing)
+
+summary(glht(Model.Ress.Corr.Testing, linfct = mcp(Condition = "Tukey")), test = adjusted("holm"))
+```
+
+####Plotting Correctness for Training
+```{r}
+CleanData2 <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+
+DataSubset <- subset(CleanData2, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "4"|Condition == "10"| Condition == "5"| 
+                       Condition == "6A"|Condition == "7"|Condition == "8"|Condition == "9")
+
+DataTraining <- subset(DataSubset, TrialType == "Training")
+
+ggplot(DataTraining, aes(x= Block, y= RespCorr, colour= Condition, linetype = Condition)) + 
+  geom_smooth(aes(colour = Condition),size = 1.0,se = TRUE, method= 'loess', formula =  y~x)+
+  
+    scale_linetype_manual(values = c("solid", "dotdash", "dotted",
+                                    "solid", "dotdash", "dotted",
+                                    "solid", "dotdash", "dotted","longdash")) +
+  
+  scale_color_manual(values= c("#0066CC", "#000000", "#0066CC", "#0066CC",
+                               "#33FF00", "#33FF00", "#33FF00", 
+                               "#CC0033", "#CC0033", "#CC0033")) +
+  
+                               
+  ggtitle("Training Performance") +
+  labs(x="Block", y="Proportion of Correctness") +
+  theme(axis.title.y = element_text(size=12,  color="#666666")) +
+  theme(axis.text = element_text(size=8)) +
+  theme(plot.title = element_text(size=16, face="bold", hjust=0, color="#666666")) +
+  theme(strip.text.x = element_text(size = 8, colour = "black"))
+
+```
+
+####Plotting Correctness for Testing
+```{r}
+CleanData2 <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+
+DataSubset <- subset(CleanData2, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "4"|Condition == "10"| Condition == "5"| 
+                       Condition == "6A"|Condition == "7"|Condition == "8"|Condition == "9")
+
+DataTesting <- subset(DataSubset, TrialType == "Testing")
+
+ggplot(DataTesting, aes(x= Block, y= RespCorr, colour= Condition, linetype = Condition)) + 
+  geom_smooth(aes(colour = Condition),size = 1.0,se = TRUE, method= 'loess', formula =  y~x)+
+  
+    scale_linetype_manual(values = c("solid", "dotdash", "dotted",
+                                    "solid", "dotdash", "dotted",
+                                    "solid", "dotdash", "dotted","longdash")) +
+  
+  scale_color_manual(values= c("#0066CC", "#000000", "#0066CC", "#0066CC",
+                               "#33FF00", "#33FF00", "#33FF00", 
+                               "#CC0033", "#CC0033", "#CC0033")) +
+  
+                               
+  ggtitle("Test Performance") +
+  labs(x="Block", y="Proportion of Correctness") +
+  theme(axis.title.y = element_text(size=12,  color="#666666")) +
+  theme(axis.text = element_text(size=8)) +
+  theme(plot.title = element_text(size=16, face="bold", hjust=0, color="#666666")) +
+  theme(strip.text.x = element_text(size = 8, colour = "black"))
+```
+
+####Modeling Correctness Training data with Condition and Block as fixed factors
+```{r}
+DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData.csv")
+
+DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
+DataNew$Condition <- as.factor(DataNew$Condition)
+
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "4"|Condition == "10"| Condition == "5"| 
+                       Condition == "6A"|Condition == "7"|Condition == "8"|Condition == "9")
+
+DataTraining <- subset(DataSubset, TrialType == "Training")
+
+Model.Ress.Corr.Training <- glmer(RespCorr ~ Condition + Block +
+                          (1|ParticipantID),
+                          data=DataTraining, 
+                          family= binomial)
+
+summary(Model.Ress.Corr.Training)
+
+anova(Model.Ress.Corr.Training)
+
+summary(glht(Model.Ress.Corr.Training, linfct = mcp(Condition = "Tukey")), test = adjusted("holm"))
+```
+
+####Trying to model Correctness Testing data with Condition and Block as fixed factors
+```{r}
+DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData.csv")
+
+DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
+DataNew$Condition <- as.factor(DataNew$Condition)
+
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "4"|Condition == "10"| Condition == "5"| 
+                       Condition == "6A"|Condition == "7"|Condition == "8"|Condition == "9")
+
+DataTesting <- subset(DataSubset, TrialType == "Testing")
+
+Model.Ress.Corr.Testing <- glmer(RespCorr ~ Condition + Block +
+                          (1|ParticipantID),
+                          data=DataTraining, 
+                          family= binomial)
+
+summary(Model.Ress.Corr.Testing)
+
+anova(Model.Ress.Corr.Testing)
+
+summary(glht(Model.Ress.Corr.Testing, linfct = mcp(Condition = "Tukey")), test = adjusted("holm"))
+```
+
+####Trying to plot Correctness through both Training and Testing
+
+```{r}
+
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "4"|Condition == "10"| Condition == "5"| 
+                       Condition == "6A"|Condition == "7"|Condition == "8"|Condition == "9")
+
+ggplot(DataSubset, aes(x= Block, y= RT, colour= Condition, linetype = Condition)) + 
+  geom_smooth(aes(colour = Condition),size = 1.0,se = TRUE, method= 'loess', formula =  y~x)+
+  
+  scale_linetype_manual(values = c("solid", "dotdash", "dotted",
+                                    "solid", "dotdash", "dotted",
+                                    "solid", "dotdash", "dotted","longdash")) +
+  
+  scale_color_manual(values= c("#0066CC", "#000000", "#0066CC", "#0066CC",
+                               "#33FF00", "#33FF00", "#33FF00", 
+                               "#CC0033", "#CC0033", "#CC0033")) +
+  
+                               
+  ggtitle("Performance by Block") +
+  labs(x="Block", y="Proportion of Correctness") +
+  facet_grid(~TrialType, scales="free", space= "free_x") + #facet grid works, but it still has a problem with loess
+  theme(axis.title.y = element_text(size=12,  color="#666666")) +
+  theme(axis.text = element_text(size=8)) +
+  theme(plot.title = element_text(size=16, face="bold", hjust=0, color="#666666")) +
+  theme(strip.text.x = element_text(size = 8, colour = "black"))
+
+```
+

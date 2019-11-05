@@ -41,7 +41,7 @@ library(DescTools)
 ```{r Loading Data, message = FALSE, warning = FALSE}
 
 #Replace with your own path. File attached
-CleanData2 <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+CleanData2 <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 CleanData3 <- subset(CleanData2, Condition == "3A"|Condition == "3B"|Condition == "10")
 
