@@ -5,9 +5,23 @@ date: "November 9, 2019"
 output: html_document
 ---
 
+####Loading libraries
+```{r}
+library(data.table)
+library(tidyverse)
+library(ggthemes)
+library(outliers)
+library(lme4)
+library(lmerTest)
+library(afex)
+library(kableExtra)
+library(agricolae)
+library(multcomp)
+```
+
 ####Modeling Correctness Training data with Block as fixed factor
 ```{r}
-DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData.csv")
+DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
 DataNew$Condition <- as.factor(DataNew$Condition)
@@ -33,7 +47,7 @@ summary(glht(Model.Block.Training, linfct = mcp(Block = "Tukey")), test = adjust
 
 ####Modeling Correctness Testing data with Block as fixed factor
 ```{r}
-DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData.csv")
+DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
 DataNew$Condition <- as.factor(DataNew$Condition)
@@ -113,7 +127,7 @@ summary(glht(Model.Set.Testing, linfct = mcp(Set = "Tukey")), test = adjusted("h
 
 ####Modeling RT Training data with Block as fixed factor
 ```{r}
-DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData.csv")
+DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
 DataNew$Condition <- as.factor(DataNew$Condition)
@@ -139,7 +153,7 @@ summary(glht(Model.Block.Training, linfct = mcp(Block = "Tukey")), test = adjust
 
 ####Modeling RT Testing data with Block as fixed factor
 ```{r}
-DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData.csv")
+DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
 DataNew$Condition <- as.factor(DataNew$Condition)
