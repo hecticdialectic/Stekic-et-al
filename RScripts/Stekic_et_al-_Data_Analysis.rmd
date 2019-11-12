@@ -547,7 +547,8 @@ Participants in the Conventional Category label condition however don't show thi
 ```{r Exploring the effect of stimuli extremeness, warning = FALSE}
 
 #Aggregating CleanData4 to include this information
-ExtremeData <- subset(CleanData4, Condition == 10|Condition == "3A"|Condition == "3B")
+ExtremeData <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+ExtremeData <- subset(ExtremeData, Condition == 10|Condition == "3A"|Condition == "3B")
 
 ExtremeData$Condition <- factor(ExtremeData$Condition,
                             levels= c("3A", "3B", 10),
@@ -564,7 +565,7 @@ ggplot(data=ExtremeAgg1, aes(x=Block, y=RespCorr, group= Group)) +
   #geom_line(aes(color= Condition)) +
   #geom_point(size=1.75, aes(colour = Condition)) +
   geom_smooth(method='loess', formula= y ~ x, se= FALSE, aes(linetype = Condition, color= Curviness)) +
- # scale_linetype_manual(values = c("solid", "solid", "solid",
+  scale_linetype_manual(values = c("solid", "solid", "solid",
   #                        "longdash", "longdash", "longdash", "dotdash",
   #                        "dotted")) +
   scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#000000")) +
