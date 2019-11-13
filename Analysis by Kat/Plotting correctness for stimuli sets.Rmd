@@ -1,5 +1,5 @@
 ---
-title: "Plotting Blocks and Sets"
+title: "Plotting and modelling Blocks and Sets and Curviness for master data"
 author: "Katarina Stekic"
 date: "November 12, 2019"
 output: html_document
@@ -17,11 +17,63 @@ library(agricolae)
 library(multcomp)
 ```
 
-####Plotting performance through stimuli sets (check why there's no variance in testing)
+####Modeling Correctness for Stimuli Sets / Training
+```{r}
+DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+
+DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
+DataNew$Condition <- as.factor(DataNew$Condition)
+DataNew$Block <- as.factor(DataNew$Block)
+DataNew$Set <- as.factor(DataNew$Set)
+
+
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "10"|Condition == "9")
+
+DataTraining <- subset(DataSubset, TrialType == "Training")
+
+Model.Set.Training <- glmer(RespCorr ~ Set +
+                          (1|ParticipantID),
+                          data=DataTraining, 
+                          family= binomial)
+
+summary(Model.Set.Training)
+
+anova(Model.Set.Training)
+
+summary(glht(Model.Set.Training, linfct = mcp(Set = "Tukey")), test = adjusted("holm"))
+```
+
+####Modeling Corectness for Stimuli Sets / Testing
+```{r}
+DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+
+DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
+DataNew$Condition <- as.factor(DataNew$Condition)
+DataNew$Block <- as.factor(DataNew$Block)
+DataNew$Set <- as.factor(DataNew$Set)
+
+
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "10"|Condition == "9")
+
+DataTesting <- subset(DataSubset, TrialType == "Testing")
+
+Model.Set.Testing <- glmer(RespCorr ~ Set +
+                          (1|ParticipantID),
+                          data=DataTesting, 
+                          family= binomial)
+
+summary(Model.Set.Testing)
+
+anova(Model.Set.Testing)
+
+summary(glht(Model.Set.Testing, linfct = mcp(Set = "Tukey")), test = adjusted("holm"))
+```
+
+####Plotting performance through stimuli sets 
 
 ```{r}
 
-Data <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+Data <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 
 ExtremeData <- subset(Data, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "10"|Condition == "9")
@@ -34,6 +86,91 @@ ExtremeData$TrialType2 = factor(ExtremeData$TrialType2, levels=c("Training","Tes
 
 ggplot(data=ExtremeData, aes(x=Block, y=RespCorr, colour= Set, linetype = Set)) +
   geom_smooth(aes(color=Set), size=1.0, se= TRUE, method='loess', formula= y ~ x) +
+  
+  scale_linetype_manual(values = c("solid", "longdash","dotdash", "dotted")) +
+  scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#000000")) +
+  labs(x="Block", y="Proportion of Correct Responses") +
+  facet_grid(~TrialType2, scales="free", space= "free_x") +
+ theme(axis.title.y = element_text(size=12,  color="#666666")) +
+  theme(axis.text = element_text(size=8)) +
+  theme(plot.title = element_text(size=16, face="bold", hjust=0, color="#666666")) +
+  theme(strip.text.x = element_text(size = 8, colour = "black"))
+  ggtitle("Performance by stimuli set")
+
+```
+
+####Modeling Correctness for Stimuli Curviness / Training
+```{r}
+DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+
+DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
+DataNew$Condition <- as.factor(DataNew$Condition)
+DataNew$Block <- as.factor(DataNew$Block)
+DataNew$Curviness <- as.factor(DataNew$Curviness)
+
+
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "10"|Condition == "9")
+
+DataTraining <- subset(DataSubset, TrialType == "Training")
+
+Model.Curviness.Training <- glmer(RespCorr ~ Curviness +
+                          (1|ParticipantID),
+                          data=DataTraining, 
+                          family= binomial)
+
+summary(Model.Curviness.Training)
+
+anova(Model.Curviness.Training)
+
+summary(glht(Model.Curviness.Training, linfct = mcp(Curviness = "Tukey")), test = adjusted("holm"))
+```
+
+####Modeling Corectness for Stimuli Curviness / Testing
+```{r}
+DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+
+DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
+DataNew$Condition <- as.factor(DataNew$Condition)
+DataNew$Block <- as.factor(DataNew$Block)
+DataNew$Curviness <- as.factor(DataNew$Curviness)
+
+
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "10"|Condition == "9")
+
+DataTesting <- subset(DataSubset, TrialType == "Testing")
+
+Model.Curviness.Testing <- glmer(RespCorr ~ Curviness +
+                          (1|ParticipantID),
+                          data=DataTesting, 
+                          family= binomial)
+
+summary(Model.Curviness.Testing)
+
+anova(Model.Curviness.Testing)
+
+summary(glht(Model.Curviness.Testing, linfct = mcp(Curviness = "Tukey")), test = adjusted("holm"))
+```
+
+
+####Plotting performance through stimuli curviness
+
+```{r}
+
+Data <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+
+
+ExtremeData <- subset(Data, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "10"|Condition == "9")
+
+ExtremeData$Set <- factor(ExtremeData$Set)
+
+ExtremeData$Condition <- factor(ExtremeData$Condition)
+
+ExtremeData$Curviness <- factor(ExtremeData$Curviness)
+
+ExtremeData$TrialType2 = factor(ExtremeData$TrialType2, levels=c("Training","Testing-Old","Testing-New"), labels=c("Training","Testing-Old","Testing-New"))
+
+ggplot(data=ExtremeData, aes(x=Block, y=RespCorr, colour= Curviness, linetype = Curviness)) +
+  geom_smooth(aes(color=Curviness), size=1.0, se= TRUE, method='loess', formula= y ~ x) +
   
   scale_linetype_manual(values = c("solid", "longdash","dotdash", "dotted")) +
   scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#000000")) +
