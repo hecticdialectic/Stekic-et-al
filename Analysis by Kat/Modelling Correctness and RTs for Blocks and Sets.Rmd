@@ -21,7 +21,7 @@ library(multcomp)
 
 ####Modeling Correctness Training data with Block as fixed factor
 ```{r}
-DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
 DataNew$Condition <- as.factor(DataNew$Condition)
