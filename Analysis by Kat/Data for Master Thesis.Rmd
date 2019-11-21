@@ -29,7 +29,7 @@ library(multcomp)
 ####Plotting Correctness through Trial type (it works with CleanData4!!!)
 ```{r}
 
-DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "10"| Condition == "9")
 
