@@ -1,0 +1,181 @@
+---
+title: "Choosing labels / master"
+author: "Katarina Stekic"
+date: "11/22/2019"
+output: html_document
+---
+
+####Loading Libraries
+```{r}
+library(data.table)
+library(tidyverse)
+library(ggthemes)
+library(outliers)
+library(lme4)
+library(lmerTest)
+library(afex)
+library(kableExtra)
+library(agricolae)
+library(multcomp)
+library(dplyr)
+library(plyr)
+```
+
+####Loading data
+```{r}
+DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+```
+
+####Adding a new column with Label Categories
+```{r}
+
+NewColumns <- c("ParticipantID", "Block","Condition","Label","RespCorr", "RT", "TrialType", "TrialType2")
+DataSubset1 <-DataNew[NewColumns]
+
+DataSubset1$LabelCat <- NA
+
+DataSubset2 <- subset(DataSubset1, Condition == 1| Condition == 2| Condition == "3A"| Condition == "3B")
+  
+DataSubset2$LabelCat <- mapvalues(DataSubset2$Label, 
+          from=c("ma:mala","mala:na","na:la:la","na:la:na","na:ma:la","nala:na","nalala", "ma:la:la", 
+                 "ma:la:na","mala:la", "mamala","mamana", "na:mala","nama:la","nama:na", "namala", "na:ma:na",
+                 "pa:pa:ta","pakaka","papa:ta","ta:ka:ta","ta:kata","ta:pa:ta","ta:pata","tapa:ka",
+                 "pa:kaka","pa:pata","pakata","papata","ta:ka:ka","tapaka", "ta:kaka","ta:paka","tapa:ta",
+                 "fa:fa:va","fa:fa:sha","fafa:va","fashasha","fashava","fasha:sha",
+                 "fa:fasha","fa:fava","fafasha","vafasha","vashava","va:fava","va:sha:va","va:shasha","vasha:va",
+                 "sa:sa:za","saha:ha","saha:za","sahaza","za:sa:za","zahaha","zasa:ha","zasaha",
+                 "sa:saza","sasaha","sasaza","za:haha","za:haza","za:saha","za:saza"), 
+          to=c("1","1","1","1","1","1","1","1",
+               "1","1","1","1","1","1","1","1","1",
+               "2","2","2","2","2","2","2","2",
+               "2","2","2","2","2","2","2","2","2",
+               "3","3","3","3","3","3",
+               "3","3","3","3","3","3","3","3","3",
+               "4","4","4","4","4","4","4","4",
+               "4","4","4","4","4","4","4"))
+```
+
+####Modelling RespCorr for Label Category / Training
+```{r}
+
+DataSubset2$Condition <- as.factor(DataSubset2$Condition)
+DataSubset2$LabelCat <- as.factor(DataSubset2$LabelCat)
+DataSubset2$ParticipantID <- as.factor(DataSubset2$ParticipantID)
+
+
+DataTraining <- subset(DataSubset2, TrialType == "Training")
+
+Model.Labels.Training <- glmer(RespCorr ~ LabelCat +
+                          (1|ParticipantID),
+                          data=DataTraining, 
+                          family= binomial)
+
+summary(Model.Labels.Training)
+
+anova(Model.Labels.Training)
+
+summary(glht(Model.Labels.Training, linfct = mcp(LabelCat = "Tukey")), test = adjusted("holm"))
+```
+
+####Plotting RespCorr for Label Category / Training
+```{r}
+
+DataSubset2$TrialType2 = factor(DataSubset2$TrialType2, levels=c("Training","Testing-Old","Testing-New"), labels=c("Training","Testing-Old","Testing-New")) 
+
+ggplot(DataSubset2, aes(x= Block, y= RespCorr, colour= LabelCat, linetype = LabelCat)) + 
+  geom_smooth(aes(colour = LabelCat),size = 1.0,se = TRUE, method= 'loess', formula =  y~x)+
+  
+  scale_linetype_manual(values = c("solid", "dotdash",
+                                    "dotdash","longdash")) +
+  
+  scale_color_manual(values= c("#0066CC", "#000000",
+                               "#33FF00", "#CC0033")) +
+                               
+  ggtitle("Performance by Block") +
+  labs(x="Block", y="Proportion of correctness") +
+  facet_grid(~TrialType2, scales="free", space= "free_x" ) +
+  theme(axis.title.y = element_text(size=12,  color="#666666")) +
+  theme(axis.text = element_text(size=8)) +
+  theme(plot.title = element_text(size=16, face="bold", hjust=0, color="#666666")) +
+  theme(strip.text.x = element_text(size = 8, colour = "black"))
+```
+
+####Making adjustments - no long vowel accents here
+```{r}
+
+NewColumns <- c("ParticipantID", "Block","Condition","Label","RespCorr", "RT", "TrialType", "TrialType2")
+DataSubset1 <-DataNew[NewColumns]
+
+DataSubset1$LabelCat <- NA
+
+DataSubset2 <- subset(DataSubset1, Condition == 1| Condition == 2| Condition == "3A"| Condition == "3B")
+
+DataSubset2$LabelCat <- mapvalues(DataSubset2$Label, 
+          from=c("ma:mala","mala:na","na:la:la","na:la:na","na:ma:la","nala:na","nalala", "ma:la:la", 
+                 "ma:la:na","mala:la", "mamala","mamana", "na:mala","nama:la","nama:na", "namala", "na:ma:na",
+                 "pa:pa:ta","pakaka","papa:ta","ta:ka:ta","ta:kata","ta:pa:ta","ta:pata","tapa:ka",
+                 "pa:kaka","pa:pata","pakata","papata","ta:ka:ka","tapaka", "ta:kaka","ta:paka","tapa:ta",
+                 "fa:fa:va","fa:fa:sha","fafa:va","fashasha","fashava","fasha:sha",
+                 "fa:fasha","fa:fava","fafasha","vafasha","vashava","va:fava","va:sha:va","va:shasha","vasha:va",
+                 "sa:sa:za","saha:ha","saha:za","sahaza","za:sa:za","zahaha","zasa:ha","zasaha",
+                 "sa:saza","sasaha","sasaza","za:haha","za:haza","za:saha","za:saza"), 
+          to=c("1","1","1","1","1","1","1","1",
+               "1","1","1","1","1","1","1","1","1",
+               "2","2","2","2","2","2","2","2",
+               "2","2","2","2","2","2","2","2","2",
+               "3","3","3","3","3","3",
+               "3","3","3","3","3","3","3","3","3",
+               "4","4","4","4","4","4","4","4",
+               "4","4","4","4","4","4","4"))
+
+DataSubset3 <- subset(DataSubset2, Label == "nalala"| Label == "mamala"| Label == "mamana" |Label ==  "namala"|
+                        Label =="pakaka"| Label == "pakata"|Label == "papata" |Label == "tapaka" |
+                        Label== "fashasha"|Label == "fashava"| Label == "fafasha"|Label == "vafasha"|Label == "vashava"|
+                        Label == "sahaza"| Label == "zahaha"|Label == "zasaha" |Label ==  "sasaha"|Label == "sasaza")
+
+```
+
+####Modelling RespCorr for Label Category no long vowel accents / Training
+```{r}
+
+DataSubset3$Condition <- as.factor(DataSubset3$Condition)
+DataSubset3$LabelCat <- as.factor(DataSubset3$LabelCat)
+DataSubset3$ParticipantID <- as.factor(DataSubset3$ParticipantID)
+
+
+DataTraining <- subset(DataSubset3, TrialType == "Training")
+
+Model.Labels.Training <- glmer(RespCorr ~ LabelCat +
+                          (1|ParticipantID),
+                          data=DataTraining, 
+                          family= binomial)
+
+summary(Model.Labels.Training)
+
+anova(Model.Labels.Training)
+
+summary(glht(Model.Labels.Training, linfct = mcp(LabelCat = "Tukey")), test = adjusted("holm"))
+```
+
+####Plotting RespCorr for Label Category no long vowel accents/ Training
+```{r}
+
+DataSubset3$TrialType2 = factor(DataSubset3$TrialType2, levels=c("Training","Testing-Old","Testing-New"), labels=c("Training","Testing-Old","Testing-New")) 
+
+ggplot(DataSubset3, aes(x= Block, y= RespCorr, colour= LabelCat, linetype = LabelCat)) + 
+  geom_smooth(aes(colour = LabelCat),size = 1.0,se = TRUE, method= 'loess', formula =  y~x)+
+  
+  scale_linetype_manual(values = c("solid", "dotdash",
+                                    "dotdash","longdash")) +
+  
+  scale_color_manual(values= c("#0066CC", "#000000",
+                               "#33FF00", "#CC0033")) +
+                               
+  ggtitle("Performance by Block") +
+  labs(x="Block", y="Proportion of correctness") +
+  facet_grid(~TrialType2, scales="free", space= "free_x" ) +
+  theme(axis.title.y = element_text(size=12,  color="#666666")) +
+  theme(axis.text = element_text(size=8)) +
+  theme(plot.title = element_text(size=16, face="bold", hjust=0, color="#666666")) +
+  theme(strip.text.x = element_text(size = 8, colour = "black"))
+```
