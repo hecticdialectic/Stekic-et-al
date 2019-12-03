@@ -77,7 +77,29 @@ anova(Model.Labels.Training)
 summary(glht(Model.Labels.Training, linfct = mcp(LabelCat = "Tukey")), test = adjusted("holm"))
 ```
 
-####Plotting RespCorr for Label Category / Training
+####Modelling RespCorr for Label Category no long vowel accents / Testing
+```{r}
+
+DataSubset2$Condition <- as.factor(DataSubset2$Condition)
+DataSubset2$LabelCat <- as.factor(DataSubset2$LabelCat)
+DataSubset2$ParticipantID <- as.factor(DataSubset2$ParticipantID)
+
+
+DataTesting <- subset(DataSubset2, TrialType == "Testing")
+
+Model.Labels.Testing <- glmer(RespCorr ~ LabelCat +
+                          (1|ParticipantID),
+                          data=DataTesting, 
+                          family= binomial)
+
+summary(Model.Labels.Testing)
+
+anova(Model.Labels.Testing)
+
+summary(glht(Model.Labels.Testing, linfct = mcp(LabelCat = "Tukey")), test = adjusted("holm"))
+```
+
+####Plotting RespCorr for Label Category 
 ```{r}
 
 DataSubset2$TrialType2 = factor(DataSubset2$TrialType2, levels=c("Training","Testing-Old","Testing-New"), labels=c("Training","Testing-Old","Testing-New")) 
@@ -157,7 +179,30 @@ anova(Model.Labels.Training)
 summary(glht(Model.Labels.Training, linfct = mcp(LabelCat = "Tukey")), test = adjusted("holm"))
 ```
 
-####Plotting RespCorr for Label Category no long vowel accents/ Training
+
+####Modelling RespCorr for Label Category no long vowel accents / Testing
+```{r}
+
+DataSubset3$Condition <- as.factor(DataSubset3$Condition)
+DataSubset3$LabelCat <- as.factor(DataSubset3$LabelCat)
+DataSubset3$ParticipantID <- as.factor(DataSubset3$ParticipantID)
+
+
+DataTesting <- subset(DataSubset3, TrialType == "Testing")
+
+Model.Labels.Testing <- glmer(RespCorr ~ LabelCat +
+                          (1|ParticipantID),
+                          data=DataTesting, 
+                          family= binomial)
+
+summary(Model.Labels.Testing)
+
+anova(Model.Labels.Testing)
+
+summary(glht(Model.Labels.Testing, linfct = mcp(LabelCat = "Tukey")), test = adjusted("holm"))
+```
+
+####Plotting RespCorr for Label Category no long vowel accents
 ```{r}
 
 DataSubset3$TrialType2 = factor(DataSubset3$TrialType2, levels=c("Training","Testing-Old","Testing-New"), labels=c("Training","Testing-Old","Testing-New")) 
