@@ -21,15 +21,14 @@ library(multcomp)
 
 ####Modeling Correctness Training data with Block as fixed factor
 ```{r}
-DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
 DataNew$Condition <- as.factor(DataNew$Condition)
 DataNew$Block <- as.factor(DataNew$Block)
 
 
-DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "4"|Condition == "10"| Condition == "5"| 
-                       Condition == "6A"|Condition == "7"|Condition == "8"|Condition == "9")
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "10"|Condition == "9")
 
 DataTraining <- subset(DataSubset, TrialType == "Training")
 
@@ -54,8 +53,7 @@ DataNew$Condition <- as.factor(DataNew$Condition)
 DataNew$Block <- as.factor(DataNew$Block)
 
 
-DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "4"|Condition == "10"| Condition == "5"| 
-                       Condition == "6A"|Condition == "7"|Condition == "8"|Condition == "9")
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "10"|Condition == "9")
 
 DataTesting <- subset(DataSubset, TrialType == "Testing")
 
@@ -81,8 +79,7 @@ DataNew$Block <- as.factor(DataNew$Block)
 DataNew$Set <- as.factor(DataNew$Set)
 
 
-DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "4"|Condition == "10"| Condition == "5"| 
-                       Condition == "6A"|Condition == "7"|Condition == "8"|Condition == "9")
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "10"|Condition == "9")
 
 DataTraining <- subset(DataSubset, TrialType == "Training")
 
@@ -108,8 +105,7 @@ DataNew$Block <- as.factor(DataNew$Block)
 DataNew$Set <- as.factor(DataNew$Set)
 
 
-DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "4"|Condition == "10"| Condition == "5"| 
-                       Condition == "6A"|Condition == "7"|Condition == "8"|Condition == "9")
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "10"|Condition == "9")
 
 DataTesting <- subset(DataSubset, TrialType == "Testing")
 
@@ -134,8 +130,7 @@ DataNew$Condition <- as.factor(DataNew$Condition)
 DataNew$Block <- as.factor(DataNew$Block)
 
 
-DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "4"|Condition == "10"| Condition == "5"| 
-                       Condition == "6A"|Condition == "7"|Condition == "8"|Condition == "9")
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "10"|Condition == "9")
 
 DataTraining <- subset(DataSubset, TrialType == "Training")
 
@@ -160,8 +155,7 @@ DataNew$Condition <- as.factor(DataNew$Condition)
 DataNew$Block <- as.factor(DataNew$Block)
 
 
-DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "4"|Condition == "10"| Condition == "5"| 
-                       Condition == "6A"|Condition == "7"|Condition == "8"|Condition == "9")
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "10"|Condition == "9")
 
 DataTesting <- subset(DataSubset, TrialType == "Testing")
 
@@ -187,8 +181,7 @@ DataNew$Block <- as.factor(DataNew$Block)
 DataNew$Set <- as.factor(DataNew$Set)
 
 
-DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "4"|Condition == "10"| Condition == "5"| 
-                       Condition == "6A"|Condition == "7"|Condition == "8"|Condition == "9")
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "10"|Condition == "9")
 
 DataTraining <- subset(DataSubset, TrialType == "Training")
 
@@ -214,8 +207,7 @@ DataNew$Block <- as.factor(DataNew$Block)
 DataNew$Set <- as.factor(DataNew$Set)
 
 
-DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "4"|Condition == "10"| Condition == "5"| 
-                       Condition == "6A"|Condition == "7"|Condition == "8"|Condition == "9")
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "10"|Condition == "9")
 
 DataTesting <- subset(DataSubset, TrialType == "Testing")
 
