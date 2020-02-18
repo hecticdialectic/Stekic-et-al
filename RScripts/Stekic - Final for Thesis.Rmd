@@ -1,0 +1,791 @@
+---
+title: "Stekic et al. (2019)- Data Analysis"
+output:   
+  html_document:
+    keep_md: true
+    theme: journal
+    toc: true
+    toc_depth: 4
+    toc_float: 
+      collapsed: false
+    code_folding: hide
+---
+
+
+#### Loading Libaries
+```{r Loading Libraries, include = FALSE}
+library(lme4)
+library(plyr)
+library(ggplot2)
+library(afex)
+library(emmeans)
+library(ggthemes)
+library(tidyverse)
+library(kableExtra)
+library(Hmisc)
+library(binom)
+library(Rmisc)
+library(magick)
+library(webshot)
+library(magrittr)
+library(multcomp)
+```
+
+```{r Loading my GGTheme, include = FALSE}
+theme_alan <- function(base_size = 12 , base_family = "")
+{
+  half_line <- base_size/2
+  colors <- ggthemes_data$few
+  gray <- colors$medium["gray"]
+  black <- colors$dark["black"]
+  
+  theme(
+    line = element_line(colour = "black", size = 0.5, linetype = 1, lineend = "butt"),
+    rect = element_rect(fill = "white", 
+                        colour = "black", size = 0.5, linetype = 1),
+    text = element_text(family = base_family, face = "plain", colour = "black", 
+                        size = base_size, lineheight = 0.9, hjust = 0.5, vjust = 0.5,
+                        angle = 0, margin = margin(), debug = FALSE),
+    
+    axis.line = element_blank(),
+    axis.line.x = NULL,
+    axis.line.y = NULL, 
+    axis.text = element_text(size = rel(0.8), colour = "grey30"),
+    axis.text.x = element_text(margin = margin(t = 0.8 * half_line/2), vjust = 1),
+    axis.text.x.top = element_text(margin = margin(b = 0.8 * half_line/2), vjust = 0),
+    axis.text.y = element_text(margin = margin(r = 0.8 * half_line/2), hjust = 1),
+    axis.text.y.right = element_text(margin = margin(l = 0.8 * half_line/2), hjust = 0), 
+    axis.ticks = element_line(colour = "grey20"), 
+    axis.ticks.length = unit(half_line/2, "pt"),
+    axis.title.x = element_text(margin = margin(t = half_line), vjust = 1),
+    axis.title.x.top = element_text(margin = margin(b = half_line), vjust = 0),
+    axis.title.y = element_text(angle = 90, margin = margin(r = half_line), vjust = 1),
+    axis.title.y.right = element_text(angle = -90, margin = margin(l = half_line), vjust = 0),
+    
+    legend.background = element_rect(colour = NA),
+    legend.spacing = unit(0.4, "cm"), 
+    legend.spacing.x = NULL, 
+    legend.spacing.y = NULL,
+    legend.margin = margin(0.2, 0.2, 0.2, 0.2, "cm"),
+    legend.key = element_rect(fill = "white", colour = NA), 
+    legend.key.size = unit(1.2, "lines"), 
+    legend.key.height = NULL,
+    legend.key.width = NULL,
+    legend.text = element_text(size = rel(0.8)), 
+    legend.text.align = NULL,
+    legend.title = element_text(hjust = 0),
+    legend.title.align = NULL,
+    legend.position = "right", 
+    legend.direction = NULL,
+    legend.justification = "center", 
+    legend.box = NULL,
+    legend.box.margin = margin(0, 0, 0, 0, "cm"),
+    legend.box.background = element_blank(),
+    legend.box.spacing = unit(0.4, "cm"),
+    
+    panel.background = element_rect(fill = "white", colour = NA),
+    panel.border = element_rect(fill = NA, colour = "grey20"),
+    panel.grid.major = element_line(colour = "grey92"),
+    panel.grid.minor = element_line(colour = "grey92", size = 0.25),
+    panel.spacing = unit(half_line, "pt"),
+    panel.spacing.x = NULL,
+    panel.spacing.y = NULL,
+    panel.ontop = FALSE,
+    
+    strip.background = element_rect(fill = "NA", colour = "NA"),
+    strip.text = element_text(colour = "grey10", size = rel(0.8)),
+    strip.text.x = element_text(margin = margin(t = half_line, b = half_line)),
+    strip.text.y = element_text(angle = 0, margin = margin(l = half_line, r = half_line)),
+    strip.placement = "inside",
+    strip.placement.x = NULL, 
+    strip.placement.y = NULL,
+    strip.switch.pad.grid = unit(0.1, "cm"), 
+    strip.switch.pad.wrap = unit(0.1, "cm"), 
+    
+    plot.background = element_rect(colour = "white"),
+    plot.title = element_text(size = rel(1.2), hjust = 0, vjust = 1, margin = margin(b = half_line * 1.2)),
+    plot.subtitle = element_text(size = rel(0.9), hjust = 0, vjust = 1, margin = margin(b = half_line * 0.9)),
+    plot.caption = element_text(size = rel(0.9), hjust = 1, vjust = 1, margin = margin(t = half_line * 0.9)), 
+    plot.margin = margin(half_line, half_line, half_line, half_line),
+    
+    complete = TRUE)
+}
+
+```
+
+
+# Reading in, Cleaning, and Preparing our data
+```{r 1- Loading and Combining Data, message = FALSE, warning = FALSE}
+
+#1 - Reading in the Raw Data
+## Our data is in two formats because of a change in jsPsych version halfway through our data collection - thus we read those separate data file types (distinguishable by file size) in here separately, then combine them into a single large data frame
+
+#1a - Specify our data folder for R
+setwd("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Data/50s/") 
+
+#1b - Take the names of every file in our directory
+files50  <- list.files(pattern = '\\.csv')
+
+#1c - Read each raw data file (called by name from read.csv) into a lists of lists (an indexed list)
+tables50 <- lapply(files50, read.csv, header = TRUE) 
+
+#1d- Bind the lists of lists into a data frame
+combined.df.50 <- do.call(rbind , tables50) 
+
+#1e- removes \ from all of the columns of the dataframe (These only appear in the .50 files from the jsPsych Update)
+combined.df.50[] <- lapply(combined.df.50, function(x) gsub("\\\\", "", x)) 
+
+#1f- Repeat steps a-d for second data folder (files output by original jsPsych before update)
+
+setwd("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Data/40s/") 
+files40  <- list.files(pattern = '\\.csv')
+tables40 <- lapply(files40, read.csv, header = TRUE)
+combined.df.40 <- do.call(rbind , tables40)
+
+#1g -Make the column names of our two data frames the same so that they can be bound into a single data object
+colnames(combined.df.50)<- c("rtD", "key_press", "trialtype2", "TrialIndex", "elapsed", "node_id", "viewhist", "responses", "Yoking", "RT", "RespKey", "RespCorr", "TrialType", "Image", "Label", "Location", "CorrectResponse", "Block", "BlockTrial", "Condition", "LabelType", "Subcondition", "TrialNum")
+
+
+colnames(combined.df.40)<- c("rtD", "key_press", "trialtype2", "TrialIndex", "elapsed", "node_id", "viewhist", "responses", "Yoking", "RT", "RespKey", "RespCorr", "TrialType", "Image", "Label", "Location", "CorrectResponse", "Block", "BlockTrial", "Condition", "LabelType", "Subcondition", "TrialNum")
+ 
+#1h - Binds our dataframes together 
+combined.df <- rbind(combined.df.50, combined.df.40)
+
+#1j- Substitute out some special characters
+combined.df[] <- lapply(combined.df, function(x) gsub("\\\\", "", x))
+combined.df[] <- lapply(combined.df, function(x) gsub("[{}]", "", x))
+combined.df[] <- lapply(combined.df, function(x) gsub("\"", "", x))
+
+```
+
+```{r 2- Cleaning Data and setting the data up for analysis}
+
+#2a- Add in a column with the biographical data (which is currently stored in a single value on the fourth line of each participant's file)
+biodata <- combined.df[seq(4, nrow(combined.df), 246),]
+biodata <- as.data.frame(biodata$responses)
+colnames(biodata) <- "biodata"
+
+biodata <- separate(biodata, col=biodata, into = c("Age", "Gender", "Specify"), sep = ",")
+
+biodata$Age <- sub("age:", "", biodata$Age)
+biodata$Gender <- sub("gender:", "", biodata$Gender)
+biodata$Specify <- sub("specify:", "", biodata$Specify)
+
+combined.df$Age <- rep(biodata$Age, each = 246)
+combined.df$Gender <- rep(biodata$Gender, each = 246)
+
+#2b- Add a unique participantID (actually the name of each file)
+files <- c(files40, files50)
+files <- sub(".csv", "", files)
+
+combined.df$ParticipantID <- rep(files, each= 246)
+
+
+#2c- Clean up our Data, Get rid of some useless columns, and re-sort the remaining columns into ones we will actually use
+CleanData <- subset(combined.df, select = c("ParticipantID", "Condition", "Subcondition", "Yoking", "TrialNum", "TrialType", "Block", "BlockTrial", "Image", "Label", "Location", "CorrectResponse", "RespKey", "RespCorr", "RT"))
+
+#2d- Get rid of extra lines from the jsPsych output- leaving us with only our Trial data (everything else of use we've extracted and added as columns)
+CleanData <- subset(CleanData, TrialNum > 0)
+
+#2e- Set the data types of our various columns
+CleanData$ParticipantID <- as.factor(CleanData$ParticipantID)
+CleanData$Condition <- as.factor(CleanData$Condition)
+CleanData$Subcondition <- as.factor(CleanData$Subcondition)
+CleanData$Yoking <- as.factor(CleanData$Yoking)
+CleanData$TrialType <- as.factor(CleanData$TrialType)
+CleanData$Location <- as.factor(CleanData$Location)
+
+CleanData$TrialNum <- as.numeric(CleanData$TrialNum)
+CleanData$Block <- as.numeric(CleanData$Block)
+CleanData$BlockTrial <- as.numeric(CleanData$BlockTrial)
+CleanData$RespCorr <- as.numeric(CleanData$RespCorr)
+CleanData$RT <- as.numeric(CleanData$RT)
+
+```
+
+```{r 3- Cleaning Data and setting the data up for analysis}
+
+#3a- Clean up our Data, Get rid of some useless columns, and re-sort the remaining columns into ones we will actually use
+CleanData <- subset(combined.df, select = c("ParticipantID", "Condition", "Subcondition", "Yoking", "TrialNum", "TrialType", "Block", "BlockTrial", "Image", "Label", "Location", "CorrectResponse", "RespKey", "RespCorr", "RT"))
+
+#3b- Get rid of extra lines from the jsPsych output- leaving us with only our Trial data (everything else of use we've extracted and added as columns)
+CleanData <- subset(CleanData, TrialNum > 0)
+
+#3c- Set the data types of our various columns
+CleanData$ParticipantID <- as.factor(CleanData$ParticipantID)
+CleanData$Condition <- as.factor(CleanData$Condition)
+CleanData$Subcondition <- as.factor(CleanData$Subcondition)
+CleanData$Yoking <- as.factor(CleanData$Yoking)
+CleanData$TrialType <- as.factor(CleanData$TrialType)
+CleanData$Location <- as.factor(CleanData$Location)
+
+CleanData$TrialNum <- as.numeric(CleanData$TrialNum)
+CleanData$Block <- as.numeric(CleanData$Block)
+CleanData$BlockTrial <- as.numeric(CleanData$BlockTrial)
+CleanData$RespCorr <- as.numeric(CleanData$RespCorr)
+CleanData$RT <- as.numeric(CleanData$RT)
+
+
+```
+
+# Data Exclusion
+
+We need to explore what data will be excluded from any further analysis off the top
+Roughly we are looking for any irregularities in Reaction Time or other response data that we think would unduly affect our data
+
+We remove data from participants for the following reasons:
+
+A) `r nrow(CleanData[is.na(CleanData$RespCorr),])` participant (ID # `r CleanData[is.na(CleanData$RespCorr),]$ParticipantID`) for which there was an 'NA' value in one of their response columns (we cannot be certain of the source of this 'NA' value so we remove their data entirely to be safe)
+
+B) `r ` participants (IDs = )
+
+
+```{r 4- Data Exclusion I, warning = FALSE, message = FALSE}
+
+#4A- Excluding any participants for which there are NA values recorded
+
+#i- Look for any 'NA' values in our Response Correctness column
+CleanData[is.na(CleanData$RespCorr),]
+
+#ii- Remove participant for whom we have this impossible value
+CleanData.RespCorr <- subset(CleanData, ParticipantID != "7gtriiTixvBaQ")
+
+#4B- Excluding any participants with impossible RT values
+## Preliminary inspection of data shows trials with negative response time values, which are obviously impossible
+RTNegative <- subset(CleanData.RespCorr, RT < 0)
+
+CleanData.RTNegCorr <- subset(CleanData.RespCorr, ParticipantID != "60CBPiTiO1gKw")
+CleanData.RTNegCorr <- subset(CleanData.RTNegCorr, ParticipantID != "k3LHwiTiOx7fx")
+
+# Verify that we have removed all negative values RT values from the data frame
+RTNegative2 <- subset(CleanData.RTNegCorr, RT < 0)
+
+#2B- Removing Participants with very large single RT values
+
+RTHigh <- subset(CleanData.RespCorr, RT>120000 )
+
+#Relevel this to get rid of factor levels that aren't there any longer
+RTHigh$ParticipantID <- factor(RTHigh$ParticipantID)
+
+RTHighs <- as.data.frame(table(RTHigh$ParticipantID))
+colnames(RTHighs) <- c("Participant", "Count")
+
+#re-order by count
+RTHighs <- RTHighs[order(-RTHighs$Count),]
+
+#Give shorter participantIDs
+RTHighs$Participant <- substring(RTHighs$Participant, 1,3)
+
+#Making the Participant Column into an Index
+RTHighs2 <- RTHighs[-1]
+row.names(RTHighs2) <- RTHighs$Participant
+
+#Transpose for output
+RTHighsT <- as.data.frame(t(RTHighs2))
+
+#Get the participantIDs for participants with too-long RT values
+
+participants <- unique(RTHigh$Participant)
+
+#Write a for loop that removes all the lines of the data frame for each of these participants
+CleanData.HighRTCorr <- CleanData.RTNegCorr
+
+for (participant in participants) {
+  
+  CleanData.HighRTCorr <- subset(CleanData.HighRTCorr, ParticipantID != participant)
+  
+}
+
+CleanData2 <- CleanData.HighRTCorr
+
+#Output this clean Data to acsv
+write.csv(CleanData2, file=("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Data/CleanData.csv"))
+
+# RT Histograms
+
+ggplot(CleanData2, aes(RT)) +
+  geom_density() #+
+  #xlim(0, 40000)
+
+#Calculating the interquartile range
+
+lowerquart <- quantile(CleanData2$RT)[2]
+upperquart <- quantile(CleanData2$RT)[4]
+
+Interquartile <- upperquart - lowerquart
+
+#Calculating thresholds
+#Mild thresholds are 1.5* interquartile range
+mild.low <- lowerquart - (Interquartile * 1.5)
+mild.high <- upperquart + (Interquartile * 1.5)
+
+#Extremes are 3* interquartile range
+extreme.low <- lowerquart - (Interquartile * 3)
+extreme.high <- upperquart + (Interquartile * 3)
+
+
+#1- Removing all Outliers ()
+CleanData.RTTrim1 <- subset(CleanData2, RT > mild.low & RT < mild.high)
+
+ggplot(CleanData.RTTrim1, aes(RT)) +
+  geom_density() +
+  ggtitle("Density Plot of RTs- All Outliers Removed")
+
+#2- Replacing all Outliers with the Mean
+CleanData.RTTrim2 <- CleanData2
+
+#Compute non-outlier means
+NOMean1 <- mean(CleanData.RTTrim1$RT)
+
+CleanData.RTTrim2$RT <- ifelse(CleanData.RTTrim2$RT < mild.low,
+                               NOMean1,
+                               CleanData.RTTrim2$RT)
+
+CleanData.RTTrim2$RT <- ifelse(CleanData.RTTrim2$RT > mild.high,
+                               NOMean1,
+                               CleanData.RTTrim2$RT)
+
+
+ggplot(CleanData.RTTrim2, aes(RT)) +
+  geom_density() +
+  ggtitle("Density Plot of RTs- All Outliers Replaced with Mean")
+
+#3- Removing only extreme outliers
+
+CleanData.RTTrim3 <- subset(CleanData2, RT > extreme.low & RT < extreme.high)
+
+ggplot(CleanData.RTTrim3, aes(RT)) +
+  geom_density() +
+  ggtitle("Density Plot of RTs- Extreme Outliers Removed")
+
+#4- Setting outliers to the most extreme of the minimum outlier values
+
+CleanData.RTTrim4 <- CleanData2
+
+CleanData.RTTrim4$RT <- ifelse(CleanData.RTTrim4$RT < mild.low,
+                               mild.low,
+                               CleanData.RTTrim4$RT)
+
+CleanData.RTTrim4$RT <- ifelse(CleanData.RTTrim4$RT > mild.high,
+                               mild.high,
+                               CleanData.RTTrim4$RT)
+
+ggplot(CleanData.RTTrim4, aes(RT)) +
+  geom_density() +
+  ggtitle("Density Plot of RTs- Outliers Trimmed to Mild Outlier Boundary")
+
+#5- Replacing all outliers with the mean on a by-subject basis
+
+participantIDs <- unique(CleanData2$ParticipantID)
+
+participantdata <- list()
+CleanData.RTTrim5 <- list()
+
+for (participant in participantIDs) {
+  
+  participantdata <- subset(CleanData2, ParticipantID == participant)
+  
+  #Get Non-Outlier Mean
+  participantdataNO <- subset(participantdata, RT > mild.low & RT < mild.high)
+  NOMean2 <- mean(participantdataNO$RT)
+  
+  
+
+  participantdata$RT <- ifelse(participantdata$RT < mild.low,
+                               NOMean2,
+                               participantdata$RT)
+
+  participantdata$RT <- ifelse(participantdata$RT > mild.high,
+                                NOMean2,
+                               participantdata$RT)
+  
+
+  
+  CleanData.RTTrim5 <- rbind(CleanData.RTTrim5, participantdata)
+
+}
+
+
+ggplot(CleanData.RTTrim5, aes(RT)) +
+  geom_density() +
+  ggtitle("Density Plot of RTs- Outliers Replaced with Mean (By Subject)")
+
+CleanData3 <- CleanData.RTTrim5
+
+#Splitting Testing Trials
+participantIDs <- unique(CleanData3$ParticipantID)
+participantdata <- list()
+participantdata.training <- list()
+participantdata.testing <- list()
+
+testingtrials <- list()
+trainingtrials <- list()
+
+
+for (participant in participantIDs) {
+  
+  participantdata <- subset(CleanData3, ParticipantID == participant)
+  participantdata.training <- subset(participantdata, TrialType == "Training")
+  participantdata.testing <- subset(participantdata, TrialType == "Testing")
+  
+  
+  TrainingFigures <- unique(participantdata.training$Image)
+  
+  participantdata.training$Generalisation <- NA
+  
+  participantdata.testing$Generalisation <- ifelse(
+    participantdata.testing$Image %in% TrainingFigures,
+    "Old",
+    "New")
+  
+  trainingtrials <- rbind(trainingtrials, participantdata.training)
+  testingtrials <- rbind(testingtrials, participantdata.testing)
+  
+  
+}
+
+CleanData4 <- rbind(trainingtrials, testingtrials)
+
+
+#Factor levels, adding Trial Type 2
+
+CleanData4$TrialType <- factor(CleanData4$TrialType, level = c ("Training", "Testing"))
+CleanData4$TrialType2 <- paste(CleanData4$TrialType, CleanData4$Generalisation, sep = "-")
+CleanData4$Generalisation <- as.factor(CleanData4$Generalisation)
+
+CleanData4$TrialType2 <- factor(CleanData4$TrialType2, level = c ("Training-NA", "Testing-Old", "Testing-New"),
+                                     labels = c("Training", "Testing-Old", "Testing-New"))
+
+
+# Obtaining the curviness of images from our original script
+
+CleanData4$Image <- sub("Stims/Figures/", "", CleanData4$Image)
+CleanData4$Image <- sub(".bmp", "", CleanData4$Image)
+
+CleanData4 <- separate(CleanData4, col=Image, into = c("ImageSeed", "JaggedvsCurved", "Curviness", "Set"), sep = "-")
+
+write.csv(CleanData4, file=("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv"))
+
+
+```
+# Data Exclusion - Approachers and Spammers
+
+```{r Data Exclusion - Approachers and Spammers, message = FALSE, warning = FALSE}
+
+#Adding a column for recoding
+CleanData4$holder <- paste(CleanData4$Location, CleanData4$RespKey, sep = "")
+
+#Score a column by whether participants chose to approach or retreat
+CleanData4$Approach <- mapvalues(CleanData4$holder,
+                                 from = c("Left39", "Down38", "Up40", "Right37", 
+                                          "Left37", "Down40", "Up38", "Right39"),
+                                 to = c(rep("Approach", 4), rep("Retreat",4)
+                                        )
+                                 )
+
+
+#First we will check for spammers - participants who vastly over-used any of the response keys
+
+CleanData4$RespKey <- factor(CleanData4$RespKey)
+KeyPresses <-
+ CleanData4 %>%
+ count(ParticipantID, RespKey, sort = FALSE)
+
+#Now we will check for non-learners/non-listeners - i.e. those who always chose to approach or retreat
+
+CleanData4$Approach <- factor(CleanData4$Approach)
+Approachers <-
+ CleanData4 %>%
+ count(ParticipantID, Approach, sort = FALSE)
+
+```
+
+
+
+# The Thesis 
+
+## Part I - Gary Lupyan and the **Cliff of Doom** (Lupyan Replication)
+
+The first step with our data is to start with Lupyan et al. (2007) to see how well we replicate the basic data from that study
+
+Our total experiment has many conditions, but only condition 3 (Conventional Category Label) and Condition 10 (No Label) are relevant for comparing to the data from Lupyan et al. (2007)
+
+The first thing we need to do is take a look at our own counterbalanced subconditions (3A and 3B) to make sure that they can be collapsed for further data analysis
+
+```{r Exploring and collapsing Condition 3 subconditions, warning = FALSE}
+
+Exp3Sub <- subset(CleanData4, Condition =="3A"|Condition == "3B")
+
+Exp3Sub$Condition <- factor(Exp3Sub$Condition)
+Exp3Sub$Block <- factor(Exp3Sub$Block)
+
+#Aggregating- Note this is only for the graph- we don't aggregate our data for analysis when using family = "binomial" - we model every single data point
+Exp3SubAgg <- summarySE(Exp3Sub, measurevar = "RespCorr", groupvars = c("Condition", "TrialType2", "Block"))
+
+
+afex.Exp3Sub <- mixed(RespCorr ~ Condition * TrialType2 + (1|ParticipantID),
+                         data=Exp3Sub,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                         method = 'LRT',
+                         progress=FALSE)
+
+
+#Pretty up results and kick out as kable
+afex.Exp3Sub$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Subcondition Comparison", ) %>%
+              kable_styling(full_width= F)
+
+pd <- position_dodge(width = 0.1)
+
+ggplot(data=Exp3SubAgg, aes(x=Block, y=RespCorr, group= Condition)) +
+  #geom_line(aes(color= Condition)) +
+  #geom_point(size=1.75, aes(colour = Condition)) +
+  geom_line(aes(linetype = Condition), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#000000")) +
+  labs(x="Block", y="Proportion of Correct Responses") +
+  scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TrialType2, scales="free", space= "free_x") +
+  theme_alan() +
+  ggtitle("Replication Performance comparing Subconditions of Condition 3")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Conventional Subconditions.png", plot = last_plot(), device = NULL, path = NULL,
+  width = 8, height = 4, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+```
+
+So above we see no significant effect of Condition when looking at only subconditions 3A and 3B, and no significant interaction of Condition x Trial type. Thus, as we expected, we are justified to collapse these subconditions for further analyses
+
+```{r Importing and modifying data for Lupyan Replication Comparison}
+
+# Subsetting out only the conditions for the replication
+ReplicationData2007 <- subset(CleanData4, Condition == 10|Condition == "3A"|Condition == "3B")
+
+# Name the levels of Condition, rather than having them be numbers
+# This also collapses subconditions 3A and 3B (justified above)
+ReplicationData2007$Condition <- factor(ReplicationData2007$Condition,
+                            levels= c("3A", "3B", 10),
+                            labels = c("Conventional Category","Conventional Category","No Label"))
+
+
+#Aggregate our data for plotting
+ReplicationAgg <- summarySE(ReplicationData2007, measurevar = "RespCorr", groupvars = c("Condition", "TrialType2", "Block"))
+
+ReplicationAgg$Block <- factor(ReplicationAgg$Block)
+
+#Plot our data
+ggplot(data=ReplicationAgg, aes(x=Block, y=RespCorr, group= Condition)) +
+  geom_line(aes(linetype = Condition), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#000000")) +
+  labs(x="Block", y="Proportion of Correct Responses") +
+  scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TrialType2, scales="free", space= "free_x") +
+  theme_alan() +
+  ggtitle("Replication of Lupyan (2017)")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Replication 2007.png", plot = last_plot(), device = NULL, path = NULL,
+  width = 8, height = 4, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+```
+
+
+We can also (of course) plot this alongside Gary's data to see how we stack up
+
+```{r Plotting the Replication with the original data, warning= FALSE}
+
+#Reading in Gary's Data
+Lupyan2007 <- read.csv("C:/Users/Alank/Documents/GitHub/Stekic-et-al/RScripts/Lupyan2007Data.csv")
+#adding columns we need (filled with NAs) to Gary's data (so the frames can be bound)
+Lupyan2007$N <- NA
+Lupyan2007$sd <- NA
+Lupyan2007$se<- NA
+Lupyan2007$ci <- NA
+
+#Adding a "study" column to our data
+ReplicationAgg2 <- summarySE(ReplicationData2007, measurevar = "RespCorr", groupvars = c("Condition", "TrialType", "Block"))
+ReplicationAgg2$Study <- "Stekic et al (2020)"
+
+#Combining the 2 dataframes into 1
+ReplicationAgg2 <- rbind(ReplicationAgg2, Lupyan2007)
+
+ReplicationAgg2$Group <- paste(ReplicationAgg2$Study, ReplicationAgg2$Condition)
+ReplicationAgg2$Block <- factor(ReplicationAgg2$Block)
+
+#Plotting the Data
+ggplot(data=ReplicationAgg2, aes(x=Block, y=RespCorr, group= Group)) +
+  geom_line(aes(linetype = Condition, color = Study), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color = Study), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#0066CC", "#CC0033","#33FF00", "#33FF00", "#000000")) +
+  labs(x="Block", y="Proportion of Correct Responses") +
+  scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TrialType, scales="free", space= "free_x") +
+  theme_alan()+
+  ggtitle("Replication Performance split by Trial Type, comparing our data to Lupyan et al. (2007)")
+
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Replication 2007 (Including Lupyan).png", plot = last_plot(), device = NULL, path = NULL,
+  width = 8, height = 4, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+
+```
+
+
+So you can see blah blah blah
+
+Samesies things:
+
+a) Training for Conventional Category label condition looks the same
+b) Overall trend for No-Label conditions looks identical
+
+Differencies things:
+c) Lower performance on no label conditions across the board (why?)
+d) TTHE CLIFF OF DOOOOOOOOOOOOOM
+
+Of course we also need to verify what jumps out at us from the graphs statistically, so below is a statistical test for the replication (note we cannot directly compare our results to Lupyan (and to do so wouldn't make sense because different stims), but we can talk about what we find statistically relative to gary)
+
+```{r Replication Statistics}
+
+afex.Replication <- mixed(RespCorr ~ Condition * TrialType2 + (1|ParticipantID),
+                         data=ReplicationData2007,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                         method = 'LRT')
+
+
+#Pretty up results and kick out as kable
+afex.Replication$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Mixed Model Results - Replication of Lupyan (2007)", ) %>%
+              kable_styling(full_width= F)
+
+##Fixed Effects 
+summary(afex.Replication)$coefficients  %>%
+  data.frame() %>%
+    tibble::rownames_to_column(var= "FixedEffect") %>% 
+    mutate(FixedEffect = recode_factor(FixedEffect, 
+                                       `Condition1` = "No Label",
+                                       `TrialType21` = "Testing - Old",
+                                       `TrialType22` = "Testing - New",
+                                       `Condition1:TrialType21` = "No Label x Testing - Old",
+                                       `Condition1:TrialType22` = "No Label x Testing - New"
+                                       )) %>%
+      `colnames<-`(c("Fixed Effect", "Estimate", "SE", "z", "p")) %>%
+        mutate_if(is.numeric, round, digits = 3) %>% 
+          mutate_at("p", funs(ifelse(.<0.001, "<0.001", .))) %>%
+            knitr::kable(caption = "Word Type Comparison- Fixed Effects Table", ) %>%
+              kable_styling(full_width= F) %>%
+                pack_rows("Intercept", 1, 1) %>%
+                  pack_rows("Condition", 2, 2) %>%
+                    pack_rows("Trial Type", 3, 4)%>%
+                      pack_rows("Interaction", 5, 6)
+```
+
+So here we see what I think look like sensible results - there is no main effect of Condition, because it is subsumed by the Interaction effect (which is where the money is) - Participants who learn a Conventional Category label do better on Training Trials, but worse on Testing Trials (of both types)
+
+## RT Analyses of Replication
+
+```{r RT Analysis for Replication}
+
+
+afex.Replication.RT <- mixed(RT ~ Condition * TrialType2 + (1|ParticipantID),
+                         data=ReplicationData2007,
+                         method = 'LRT')
+
+
+#Pretty up results and kick out as kable
+afex.Replication.RT$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Mixed Model Results - Replication of Lupyan (2007)", ) %>%
+              kable_styling(full_width= F)
+
+##Fixed Effects 
+summary(afex.Replication.RT)$coefficients  %>%
+  data.frame() %>%
+    tibble::rownames_to_column(var= "FixedEffect") %>% 
+    mutate(FixedEffect = recode_factor(FixedEffect, 
+                                       `Condition1` = "No Label",
+                                       `TrialType21` = "Testing - Old",
+                                       `TrialType22` = "Testing - New",
+                                       `Condition1:TrialType21` = "No Label x Testing - Old",
+                                       `Condition1:TrialType22` = "No Label x Testing - New"
+                                       )) %>%
+      `colnames<-`(c("Fixed Effect", "Estimate", "SE", "df", "t", "p")) %>%
+        mutate_if(is.numeric, round, digits = 3) %>% 
+          mutate_at("p", funs(ifelse(.<0.001, "<0.001", .))) %>%
+            knitr::kable(caption = "Word Type Comparison- Fixed Effects Table", ) %>%
+              kable_styling(full_width= F) %>%
+                pack_rows("Intercept", 1, 1) %>%
+                  pack_rows("Condition", 2, 2) %>%
+                    pack_rows("Trial Type", 3, 4)%>%
+                      pack_rows("Interaction", 5, 6)
+
+
+ReplicationAggRT <- summarySE(ReplicationData2007, measurevar = "RT", groupvars = c("Condition", "TrialType2", "Block"))
+
+ReplicationAggRT$Block <- factor(ReplicationAggRT$Block)
+
+#Plot our data
+ggplot(data=ReplicationAggRT, aes(x=Block, y=RT, group= Condition)) +
+  geom_line(aes(linetype = Condition), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RT - ci, ymax= RT + ci), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#000000")) +
+  labs(x="Block", y="Response Time (ms)") +
+  #scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TrialType2, scales="free", space= "free_x") +
+  theme_alan() +
+  ggtitle("Replication of Lupyan (2017)- Response Times")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Replication 2007 - Response Times.png", plot = last_plot(), device = NULL, path = NULL,
+  width = 8, height = 4, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+
+```
+
+The other thing to look at is the learning trajectory for training (i.e. the effect of Block)
+Previous models were not converging and this I think had to do with "double dipping" the "block" values- i.e. mostly a naming thing
+
+However 
+
+
+
+
+```{r Block Analysis for training}
+
+afex.Replication.Block <- mixed(RespCorr ~ Condition * Block + (1|ParticipantID),
+                         data=subset(ReplicationData2007, TrialType2 == "Training") ,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                        method = 'LRT')
+
+afex.Replication.Block$anova_table
+
+
+```
+
+
+
+
+
+
+
