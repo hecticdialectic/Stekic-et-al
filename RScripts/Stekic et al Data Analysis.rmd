@@ -31,7 +31,7 @@ library(lme4)
 library(lmerTest)
 library(afex)
 library(kableExtra)
-
+library(Rmisc)
 ```
 
 ####Loading Data
@@ -122,46 +122,94 @@ We have all of our data combined, but it has to be cleaned up considerably (tidi
 5) Delete the useless rows
 6) Make sure the columns are all the right data types
 
-####Exploring the Data
-```{r Exploring the Data}
+####Loading Data
+```{r Loading Data, message = FALSE, warning = FALSE}
 
-#1- Removing participant 7gtriiTixvBaQ
-RespCorrStrange <- CleanData[is.na(CleanData$RespCorr),]
-CleanData.RespCorr <- subset(CleanData, ParticipantID != "7gtriiTixvBaQ")
+# Our data is in two formats because of a change in jsPsych version halfway through our data collection - thus we read those separate data file types (distinguishable by file size) in here separately, then combine them into a single large data frame
 
-#2A- Removing Participants with impossible negative RT values
-RTNegative <- subset(CleanData.RespCorr, RT < 0)
+setwd("C:/Users/Alan/Documents/GitHub/Stekic-et-al/Data/50s/")
+files50  <- list.files(pattern = '\\.csv')
+tables50 <- lapply(files50, read.csv, header = TRUE)
+combined.df.50 <- do.call(rbind , tables50)
 
-CleanData.RTNegCorr <- subset(CleanData.RespCorr, ParticipantID != "60CBPiTiO1gKw")
-CleanData.RTNegCorr <- subset(CleanData.RTNegCorr, ParticipantID != "k3LHwiTiOx7fx")
+combined.df.50[] <- lapply(combined.df.50, function(x) gsub("\\\\", "", x))
 
-# Verify that we have removed all negative values RT values from the data frame
-RTNegative2 <- subset(CleanData.RTNegCorr, RT < 0)
+setwd("C:/Users/Alan/Documents/GitHub/Stekic-et-al/Data/40s/")
+files40  <- list.files(pattern = '\\.csv')
+tables40 <- lapply(files40, read.csv, header = TRUE)
+combined.df.40 <- do.call(rbind , tables40)
 
-#2B- Removing Participants with very large single RT values
+colnames(combined.df.50)<- c("rtD", "key_press", "trialtype2", "TrialIndex", "elapsed", "node_id", "viewhist", "responses", "Yoking", "RT", "RespKey", "RespCorr", "TrialType", "Image", "Label", "Location", "CorrectResponse", "Block", "BlockTrial", "Condition", "LabelType", "Subcondition", "TrialNum")
 
-RTHigh <- subset(CleanData.RespCorr, RT>120000 )
 
-#Relevel this to get rid of factor levels that aren't there any longer
-RTHigh$ParticipantID <- factor(RTHigh$ParticipantID)
-
-RTHighs <- as.data.frame(table(RTHigh$ParticipantID))
-colnames(RTHighs) <- c("Participant", "Count")
-
-#re-order by count
-RTHighs <- RTHighs[order(-RTHighs$Count),]
-
-#Give shorter participantIDs
-RTHighs$Participant <- substring(RTHighs$Participant, 1,3)
-
-#Making the Participant Column into an Index
-RTHighs2 <- RTHighs[-1]
-row.names(RTHighs2) <- RTHighs$Participant
-
-#Transpose for output
-RTHighsT <- as.data.frame(t(RTHighs2))
+colnames(combined.df.40)<- c("rtD", "key_press", "trialtype2", "TrialIndex", "elapsed", "node_id", "viewhist", "responses", "Yoking", "RT", "RespKey", "RespCorr", "TrialType", "Image", "Label", "Location", "CorrectResponse", "Block", "BlockTrial", "Condition", "LabelType", "Subcondition", "TrialNum")
+  
+combined.df <- rbind(combined.df.50, combined.df.40)
 
 ```
+
+## Cleaning Up the Data
+```{r Data Cleaning, warning = FALSE}
+#1- Substitute out some special characters
+combined.df[] <- lapply(combined.df, function(x) gsub("\\\\", "", x))
+combined.df[] <- lapply(combined.df, function(x) gsub("[{}]", "", x))
+combined.df[] <- lapply(combined.df, function(x) gsub("\"", "", x))
+
+#2- Add in a column with the biographical data (which is currently stored in a single value on the fourth line of each participant's file)
+biodata <- combined.df[seq(4, nrow(combined.df), 246),]
+biodata <- as.data.frame(biodata$responses)
+
+colnames(biodata) <- "biodata"
+
+biodata <- separate(biodata, col=biodata, into = c("Age", "Gender", "Specify"), sep = ",")
+
+biodata$Age <- sub("age:", "", biodata$Age)
+biodata$Gender <- sub("gender:", "", biodata$Gender)
+biodata$Specify <- sub("specify:", "", biodata$Specify)
+
+combined.df$Age <- rep(biodata$Age, each = 246)
+combined.df$Gender <- rep(biodata$Gender, each = 246)
+
+#3- Add a unique participantID (actually the name of each file)
+files <- c(files40, files50)
+files <- sub(".csv", "", files)
+
+combined.df$ParticipantID <- rep(files, each= 246)
+
+```
+
+####Cleaning up the Data 2
+```{r Cleaning up the Data 2}
+
+#4- Clean up our Data, Get rid of some useless columns, and re-sort the remaining columns into ones we will actually use
+CleanData <- subset(combined.df, select = c("ParticipantID", "Condition", "Subcondition", "Yoking", "TrialNum", "TrialType", "Block", "BlockTrial", "Image", "Label", "Location", "CorrectResponse", "RespKey", "RespCorr", "RT"))
+
+#5- Get rid of extra lines from the jsPsych output- leaving us with only our Trial data (everything else of use we've extracted and added as columns)
+CleanData <- subset(CleanData, TrialNum > 0)
+
+#6- Set the data types of our various columns
+CleanData$ParticipantID <- as.factor(CleanData$ParticipantID)
+CleanData$Condition <- as.factor(CleanData$Condition)
+CleanData$Subcondition <- as.factor(CleanData$Subcondition)
+CleanData$Yoking <- as.factor(CleanData$Yoking)
+CleanData$TrialType <- as.factor(CleanData$TrialType)
+CleanData$Location <- as.factor(CleanData$Location)
+
+CleanData$TrialNum <- as.numeric(CleanData$TrialNum)
+CleanData$Block <- as.numeric(CleanData$Block)
+CleanData$BlockTrial <- as.numeric(CleanData$BlockTrial)
+CleanData$RespCorr <- as.numeric(CleanData$RespCorr)
+CleanData$RT <- as.numeric(CleanData$RT)
+```
+
+We have all of our data combined, but it has to be cleaned up considerably (tidied)
+
+1) remove all of the slashes and backslashes everywhere to have data that we can actually read and parse properly with later commands
+2) Extract the biological data from the participants, which is on line 4 of each participant's dataframe, then put it back into the main dataframe as the Age and Gender columns
+3) Add a unique participantID column (from the filenames)
+4) Trim down to the required columns and re-order them
+5) Delete the useless rows
+6) Make sure the columns are all the right data types
 
 The basics of tidying are now done, but we should take a visual look at the data- for example looking for impossible values
 
@@ -186,6 +234,7 @@ knitr::kable(RTHighsT, caption = 'Number of Trials over 2 Minutes long by Partic
   kable_styling() %>%
   scroll_box(width = "800px", height = "150px")
 ```
+
 ####Removing Long RT Participants
 ```{r Removing Data for Long RT Participants}
 
@@ -484,7 +533,7 @@ For best comparison, lets plot this with Lupyan et al's data
 ####Plotting with data from Lupyan et al 2007
 ```{r Plotting with Lupyan 2007, warning = FALSE}
 #Reading in Gary's Data
-Lupyan2007 <- read.csv("C:/Users/Alan/Documents/GitHub/Stekic-et-al/RScripts/Lupyan2007Data.csv")
+Lupyan2007 <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/RScripts/Lupyan2007Data.csv")
 
 Rep2007Agg2 <- Rep2007Agg1
 
@@ -870,7 +919,6 @@ ggplot(data=CD4Agg, aes(x=Block, y=RespCorr, group= Condition)) +
   #geom_point(aes(color = Condition, shape = Condition), size = 3, position=pd) +
   labs(x="Block", y="Proportion of Correct Responses") +
   scale_y_continuous(limits = c(0.4,1.0), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
-  theme_alan() +
   scale_linetype_manual(values = c("solid", "solid", "solid", "longdash","longdash","longdash", "dotdash", "solid")) +
   scale_color_manual(values= c("#a1dab4", "#41b6c4","#2c7fb8", "#a1dab4", "#41b6c4","#2c7fb8", "#253494", "#000000")) +
   #scale_shape_manual(values= c(15,16,17,18)) +

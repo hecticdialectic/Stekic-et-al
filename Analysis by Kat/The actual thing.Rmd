@@ -1,0 +1,27 @@
+---
+title: "The actual thing"
+author: "Katarina Stekic"
+date: "2/18/2020"
+output:
+    html_document:
+    keep_md: true
+    theme: journal
+    toc: true
+    toc_depth: 2
+    toc_float: 
+      collapsed: false
+    code_folding: hide
+---
+####Loading Libraries
+```{r Loading Libraries, message= FALSE, warning = FALSE}
+
+library(data.table)
+library(tidyverse)
+library(ggthemes)
+library(outliers)
+library(lme4)
+library(lmerTest)
+library(afex)
+library(kableExtra)
+library(Rmisc)
+```

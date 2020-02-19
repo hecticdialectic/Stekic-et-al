@@ -28,14 +28,16 @@ DataNew$Condition <- as.factor(DataNew$Condition)
 DataNew$Block <- as.factor(DataNew$Block)
 
 
-DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "4"|Condition == "10"| Condition == "5"| 
-                       Condition == "6A"|Condition == "7"|Condition == "8"|Condition == "9")
+#DataSubset <- subset(DataNew, Block == "9")
 
-DataTraining <- subset(DataSubset, TrialType == "Training")
+#DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"||Condition == "3B"|Condition == "4"|Condition == "10"| Condition == "5"| 
+                       #Condition == "6A"||Condition == "6B"|Condition == "7"|Condition == "8"|Condition == "9")
 
-Model.Block.Training <- glmer(RespCorr ~ Block +
+DataTraining <- subset(DataSubset, TrialType2 == "Training")
+
+Model.Block.Training <- glmer(RespCorr ~ Block + Condition +
                           (1|ParticipantID),
-                          data=DataTraining, 
+                          data=DataTraining,
                           family= binomial)
 
 summary(Model.Block.Training)
@@ -47,19 +49,20 @@ summary(glht(Model.Block.Training, linfct = mcp(Block = "Tukey")), test = adjust
 
 ####Modeling Correctness Testing data with Block as fixed factor
 ```{r}
-DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
 DataNew$Condition <- as.factor(DataNew$Condition)
 DataNew$Block <- as.factor(DataNew$Block)
+DataNew$TrialType <- as.factor(DataNew$TrialType)
 
 
 DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "4"|Condition == "10"| Condition == "5"| 
                        Condition == "6A"|Condition == "7"|Condition == "8"|Condition == "9")
 
-DataTesting <- subset(DataSubset, TrialType == "Testing")
+DataTesting <- subset(DataSubset, TrialType == "Training")
 
-Model.Block.Testing <- glmer(RespCorr ~ Block +
+Model.Block.Testing <- glmer(RespCorr ~ Condition +
                           (1|ParticipantID),
                           data=DataTesting, 
                           family= binomial)
@@ -68,12 +71,12 @@ summary(Model.Block.Testing)
 
 anova(Model.Block.Testing)
 
-summary(glht(Model.Block.Testing, linfct = mcp(Block = "Tukey")), test = adjusted("holm"))
+summary(glht(Model.Block.Testing, linfct = mcp(Condition = "Tukey")), test = adjusted("holm"))
 ```
 
 ####Modeling Correctness for Stimuli Sets / Training
 ```{r}
-DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
 DataNew$Condition <- as.factor(DataNew$Condition)
@@ -81,8 +84,8 @@ DataNew$Block <- as.factor(DataNew$Block)
 DataNew$Set <- as.factor(DataNew$Set)
 
 
-DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "4"|Condition == "10"| Condition == "5"| 
-                       Condition == "6A"|Condition == "7"|Condition == "8"|Condition == "9")
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "3B"|Condition == "4"|Condition == "10"| Condition == "5"| 
+                       Condition == "6A"| Condition == "6B"|Condition == "7"|Condition == "8"|Condition == "9")
 
 DataTraining <- subset(DataSubset, TrialType == "Training")
 
@@ -100,7 +103,7 @@ summary(glht(Model.Set.Training, linfct = mcp(Set = "Tukey")), test = adjusted("
 
 ####Modeling Corectness for Stimuli Sets / Testing
 ```{r}
-DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
 DataNew$Condition <- as.factor(DataNew$Condition)
@@ -127,7 +130,7 @@ summary(glht(Model.Set.Testing, linfct = mcp(Set = "Tukey")), test = adjusted("h
 
 ####Modeling RT Training data with Block as fixed factor
 ```{r}
-DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
 DataNew$Condition <- as.factor(DataNew$Condition)
@@ -179,7 +182,7 @@ summary(glht(Model.Block.Testing, linfct = mcp(Block = "Tukey")), test = adjuste
 
 ####Modeling RTs for Stimuli Sets / Training
 ```{r}
-DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
 DataNew$Condition <- as.factor(DataNew$Condition)

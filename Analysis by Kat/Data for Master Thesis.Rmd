@@ -29,59 +29,62 @@ library(multcomp)
 ####Plotting Correctness through Trial type (it works with CleanData4!!!)
 ```{r}
 
-DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/.csv")
 
-DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "10"| Condition == "9")
+DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
+DataNew$Condition <- as.factor(DataNew$Condition)
+DataNew$Block <- as.factor(DataNew$Block)
+DataNew$ImageSeed <- as.factor(DataNew$ImageSeed)
 
-DataSubset$TrialType2 = factor(DataSubset$TrialType2, levels=c("Training","Testing-Old","Testing-New"), labels=c("Training","Testing-Old","Testing-New")) 
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "3A"|Condition == "4"|Condition == "10"|Condition == "6A")
 
-ggplot(DataSubset, aes(x= Block, y= RespCorr, colour= Condition, linetype = Condition)) + 
-  geom_smooth(aes(colour = Condition),size = 1.0,se = TRUE, method= 'loess', formula =  y~x)+
+DataSubset$TrialType2 = factor(DataSubset$TrialType2, levels=c("Training","Testing-Old","Testing-New"), labels=c("Trening","Test-Stari","Test-Novi")) 
+
+ggplot(DataSubset, aes(x= Block, y= RespCorr, colour = Condition, linetype = Condition) + 
+  geom_smooth(aes(colour = Condition),size = 1.0,se = FALSE, method= 'loess', formula =  y~x)+
   
-  scale_linetype_manual(values = c("solid", "dotdash",
-                                    "solid", "dotdash",
-                                    "longdash")) +
+  scale_linetype_manual(values = c("solid","Solid","longdash","twodash","dotdash")) +
   
-  scale_color_manual(values= c("#0066CC", "#000000",
-                               "#33FF00", "#33FF00", 
-                                "#CC0033")) +
+  scale_color_manual(values= c("#33FF00","#000000","#18490C","#CC0033","#970808")) +
                                
-  ggtitle("Performance by Block") +
-  labs(x="Block", y="Proportion of Correctness") +
+  ggtitle("Tacnost kategorizacije") +
+  labs(x="Blok", y="Proporcija tacnosti") +
   facet_grid(~TrialType2, scales="free", space= "free_x" ) +
   theme(axis.title.y = element_text(size=12,  color="#666666")) +
   theme(axis.text = element_text(size=8)) +
   theme(plot.title = element_text(size=16, face="bold", hjust=0, color="#666666")) +
-  theme(strip.text.x = element_text(size = 8, colour = "black"))
+  theme(strip.text.x = element_text(size = 8, colour = "black")) +
+  theme_bw())
+  #theme(panel.grid.major = element_blank, panel.grid.minor = element_blank(),panel.background = element_blank())
 
 ```
+
 ####Plotting Rts through Trial type (it works with CleanData4!!!)
 ```{r}
 
 DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
-DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "10"| Condition == "9")
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "3A"|Condition == "6A"|Condition == "4"|Condition == "10")
 
-DataSubset$TrialType2 = factor(DataSubset$TrialType2, levels=c("Training","Testing-Old","Testing-New"), labels=c("Training","Testing-Old","Testing-New")) 
+DataSubset$TrialType2 = factor(DataSubset$TrialType2, levels=c("Training","Testing-Old","Testing-New"), labels=c("Trening","Test-Stari","Test-Novi")) 
 
-ggplot(DataSubset, aes(x= Block, y= RT, colour= Condition, linetype = Condition)) + 
-  geom_smooth(aes(colour = Condition),size = 1.0,se = TRUE, method= 'loess', formula =  y~x)+
+ggplot(DataSubset, aes(x= Block, y= RespCorr, colour= Condition, linetype = Condition)) + 
+  geom_smooth(aes(colour = Condition),size = 1.0,se = FALSE, method= 'loess', formula =  y~x)+
   
-  scale_linetype_manual(values = c("solid", "dotdash",
-                                    "solid", "dotdash",
-                                    "longdash")) +
+  scale_linetype_manual(values = c("solid","Solid", "longdash", "twodash", "dotdash")) +
   
-  scale_color_manual(values= c("#0066CC", "#000000",
-                               "#33FF00", "#33FF00", 
-                                "#CC0033")) +
+  scale_color_manual(values= c("#33FF00", "#000000","#18490C","#CC0033","#970808")) +
                                
-  ggtitle("Performance by Block") +
-  labs(x="Block", y="RT in ms") +
+  ggtitle("Vreme kategorizacije") +
+  labs(x="Blok", y="Vreme u ms") +
   facet_grid(~TrialType2, scales="free", space= "free_x" ) +
   theme(axis.title.y = element_text(size=12,  color="#666666")) +
   theme(axis.text = element_text(size=8)) +
   theme(plot.title = element_text(size=16, face="bold", hjust=0, color="#666666")) +
-  theme(strip.text.x = element_text(size = 8, colour = "black"))
+  theme(strip.text.x = element_text(size = 8, colour = "black")) +
+  theme_bw()
+  #theme(panel.grid.major = element_blank, panel.grid.minor = element_blank(),panel.background = element_blank())
+
 
 ```
 
@@ -161,14 +164,14 @@ DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
 DataNew$Condition <- as.factor(DataNew$Condition)
 
-DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "10"|Condition == "9")
+DataSubset <- subset(DataNew, Block == "1")
 
 DataTraining <- subset(DataSubset, TrialType == "Training")
 
-Model.Ress.Corr.Testing <- glmer(RT ~ Condition + Block +
+Model.Ress.Corr.Testing <- glmer(RT ~ Condition +
                           (1|ParticipantID),
                           data=DataTraining, 
-                          family= gaussian)
+                          family= inverse.gaussian(link= "identity"))
 
 summary(Model.Ress.Corr.Testing)
 
