@@ -29,12 +29,16 @@ library(multcomp)
 ####Plotting Correctness through Trial type (it works with CleanData4!!!)
 ```{r}
 
+<<<<<<< HEAD
 DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/.csv")
 
 DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
 DataNew$Condition <- as.factor(DataNew$Condition)
 DataNew$Block <- as.factor(DataNew$Block)
 DataNew$ImageSeed <- as.factor(DataNew$ImageSeed)
+=======
+DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+>>>>>>> b5d465c9b3477a7c6f331729ac9b68db7c747b98
 
 DataSubset <- subset(DataNew, Condition == "1"|Condition == "3A"|Condition == "4"|Condition == "10"|Condition == "6A")
 
@@ -62,7 +66,7 @@ ggplot(DataSubset, aes(x= Block, y= RespCorr, colour = Condition, linetype = Con
 ####Plotting Rts through Trial type (it works with CleanData4!!!)
 ```{r}
 
-DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 DataSubset <- subset(DataNew, Condition == "1"|Condition == "3A"|Condition == "6A"|Condition == "4"|Condition == "10")
 
@@ -90,7 +94,7 @@ ggplot(DataSubset, aes(x= Block, y= RespCorr, colour= Condition, linetype = Cond
 
 ####Modeling master thesis Correctness pilot data for Test Condition + Block
 ```{r}
-DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
 DataNew$Condition <- as.factor(DataNew$Condition)
@@ -113,8 +117,7 @@ summary(glht(Model.Ress.Corr.Testing, linfct = mcp(Condition = "Tukey")), test =
 
 ####Modeling master thesis Correctness pilot data for Training Condition + Block
 ```{r}
-DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
-
+DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
 DataNew$Condition <- as.factor(DataNew$Condition)
 
@@ -136,7 +139,7 @@ summary(glht(Model.Ress.Corr.Testing, linfct = mcp(Condition = "Tukey")), test =
 
 ####Modeling master thesis RT pilot data for Test Condition + Block
 ```{r}
-DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
 DataNew$Condition <- as.factor(DataNew$Condition)
@@ -159,7 +162,7 @@ summary(glht(Model.Ress.Corr.Testing, linfct = mcp(Condition = "Tukey")), test =
 
 #Modeling master thesis RT pilot data for Training Condition + Block
 ```{r}
-DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
 DataNew$Condition <- as.factor(DataNew$Condition)

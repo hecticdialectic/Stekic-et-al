@@ -34,19 +34,104 @@ library(kableExtra)
 library(Rmisc)
 ```
 
+
+```{r Reading in my GGThemese, include = FALSE}
+theme_alan <- function(base_size = 12 , base_family = "")
+{
+  half_line <- base_size/2
+  colors <- ggthemes_data$few
+  gray <- colors$medium["gray"]
+  black <- colors$dark["black"]
+  
+  theme(
+    line = element_line(colour = "black", size = 0.5, linetype = 1, lineend = "butt"),
+    rect = element_rect(fill = "white", 
+                        colour = "black", size = 0.5, linetype = 1),
+    text = element_text(family = base_family, face = "plain", colour = "black", 
+                        size = base_size, lineheight = 0.9, hjust = 0.5, vjust = 0.5,
+                        angle = 0, margin = margin(), debug = FALSE),
+    
+    axis.line = element_blank(),
+    axis.line.x = NULL,
+    axis.line.y = NULL, 
+    axis.text = element_text(size = rel(0.8), colour = "grey30"),
+    axis.text.x = element_text(margin = margin(t = 0.8 * half_line/2), vjust = 1),
+    axis.text.x.top = element_text(margin = margin(b = 0.8 * half_line/2), vjust = 0),
+    axis.text.y = element_text(margin = margin(r = 0.8 * half_line/2), hjust = 1),
+    axis.text.y.right = element_text(margin = margin(l = 0.8 * half_line/2), hjust = 0), 
+    axis.ticks = element_line(colour = "grey20"), 
+    axis.ticks.length = unit(half_line/2, "pt"),
+    axis.title.x = element_text(margin = margin(t = half_line), vjust = 1),
+    axis.title.x.top = element_text(margin = margin(b = half_line), vjust = 0),
+    axis.title.y = element_text(angle = 90, margin = margin(r = half_line), vjust = 1),
+    axis.title.y.right = element_text(angle = -90, margin = margin(l = half_line), vjust = 0),
+    
+    legend.background = element_rect(colour = NA),
+    legend.spacing = unit(0.4, "cm"), 
+    legend.spacing.x = NULL, 
+    legend.spacing.y = NULL,
+    legend.margin = margin(0.2, 0.2, 0.2, 0.2, "cm"),
+    legend.key = element_rect(fill = "white", colour = NA), 
+    legend.key.size = unit(1.2, "lines"), 
+    legend.key.height = NULL,
+    legend.key.width = NULL,
+    legend.text = element_text(size = rel(0.8)), 
+    legend.text.align = NULL,
+    legend.title = element_text(hjust = 0),
+    legend.title.align = NULL,
+    legend.position = "right", 
+    legend.direction = NULL,
+    legend.justification = "center", 
+    legend.box = NULL,
+    legend.box.margin = margin(0, 0, 0, 0, "cm"),
+    legend.box.background = element_blank(),
+    legend.box.spacing = unit(0.4, "cm"),
+    
+    panel.background = element_rect(fill = "white", colour = NA),
+    panel.border = element_rect(fill = NA, colour = "grey20"),
+    panel.grid.major = element_line(colour = "grey92"),
+    panel.grid.minor = element_line(colour = "grey92", size = 0.25),
+    panel.spacing = unit(half_line, "pt"),
+    panel.spacing.x = NULL,
+    panel.spacing.y = NULL,
+    panel.ontop = FALSE,
+    
+    strip.background = element_rect(fill = "NA", colour = "NA"),
+    strip.text = element_text(colour = "grey10", size = rel(0.8)),
+    strip.text.x = element_text(margin = margin(t = half_line, b = half_line)),
+    strip.text.y = element_text(angle = 0, margin = margin(l = half_line, r = half_line)),
+    strip.placement = "inside",
+    strip.placement.x = NULL, 
+    strip.placement.y = NULL,
+    strip.switch.pad.grid = unit(0.1, "cm"), 
+    strip.switch.pad.wrap = unit(0.1, "cm"), 
+    
+    plot.background = element_rect(colour = "white"),
+    plot.title = element_text(size = rel(1.2), hjust = 0, vjust = 1, margin = margin(b = half_line * 1.2)),
+    plot.subtitle = element_text(size = rel(0.9), hjust = 0, vjust = 1, margin = margin(b = half_line * 0.9)),
+    plot.caption = element_text(size = rel(0.9), hjust = 1, vjust = 1, margin = margin(t = half_line * 0.9)), 
+    plot.margin = margin(half_line, half_line, half_line, half_line),
+    
+    complete = TRUE)
+}
+
+
+```
+
+
 ####Loading Data
 ```{r Loading Data, message = FALSE, warning = FALSE}
 
 # Our data is in two formats because of a change in jsPsych version halfway through our data collection - thus we read those separate data file types (distinguishable by file size) in here separately, then combine them into a single large data frame
 
-setwd("C:/Users/Alan/Documents/GitHub/Stekic-et-al/Data/50s/")
+setwd("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Data/50s/")
 files50  <- list.files(pattern = '\\.csv')
 tables50 <- lapply(files50, read.csv, header = TRUE)
 combined.df.50 <- do.call(rbind , tables50)
 
 combined.df.50[] <- lapply(combined.df.50, function(x) gsub("\\\\", "", x))
 
-setwd("C:/Users/Alan/Documents/GitHub/Stekic-et-al/Data/40s/")
+setwd("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Data/40s/")
 files40  <- list.files(pattern = '\\.csv')
 tables40 <- lapply(files40, read.csv, header = TRUE)
 combined.df.40 <- do.call(rbind , tables40)
@@ -254,7 +339,7 @@ for (participant in participants) {
 CleanData2 <- CleanData.HighRTCorr
 
 #Output this clean Data to acsv
-write.csv(CleanData2, file=("C:/Users/Alan/Documents/GitHub/Stekic-et-al/Data/CleanData.csv"))
+write.csv(CleanData2, file=("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Data/CleanData.csv"))
 
 ```
 
@@ -453,11 +538,11 @@ CleanData4$Image <- sub(".bmp", "", CleanData4$Image)
 
 CleanData4 <- separate(CleanData4, col=Image, into = c("ImageSeed", "JaggedvsCurved", "Curviness", "Set"), sep = "-")
 
-write.csv(CleanData4, file=("C:/Users/Alan/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv"))
+write.csv(CleanData4, file=("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv"))
 
 ```
 
-Our experiment is split into Training Trials and Testing Trials, and that is already in the data frame, but there areafew additional differences required.
+Our experiment is split into Training Trials and Testing Trials, and that is already in the data frame, but there are a few additional differences required.
 
 The first of these is splitting up our testing trials so we can look at Generalisation. Testing trials in this experiment use both the initial set of 16 stimuli per participant and also introduce 8 novel exemplars to test the ability of participants to generalise the rules that they have learned 
 
@@ -533,7 +618,11 @@ For best comparison, lets plot this with Lupyan et al's data
 ####Plotting with data from Lupyan et al 2007
 ```{r Plotting with Lupyan 2007, warning = FALSE}
 #Reading in Gary's Data
+<<<<<<< HEAD
 Lupyan2007 <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/RScripts/Lupyan2007Data.csv")
+=======
+Lupyan2007 <- read.csv("C:/Users/Alank/Documents/GitHub/Stekic-et-al/RScripts/Lupyan2007Data.csv")
+>>>>>>> b5d465c9b3477a7c6f331729ac9b68db7c747b98
 
 Rep2007Agg2 <- Rep2007Agg1
 
@@ -736,6 +825,9 @@ ggplot(data=Exp3SubAgg, aes(x=Block, y=RespCorr, group= Condition)) +
   theme_tufte() +
   ggtitle("Replication Performance comparing Subconditions of Condition 3")
 
+ggsave("Conventional Subconditions.png", plot = last_plot(), device = NULL, path = NULL,
+  width = 12, height = 8, units = c("in", "cm", "mm"),
+  dpi = 600)
 
 
 ```

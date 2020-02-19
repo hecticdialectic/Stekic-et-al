@@ -19,7 +19,7 @@ library(multcomp)
 
 ####Modeling Correctness for Stimuli Sets / Training
 ```{r}
-DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
 DataNew$Condition <- as.factor(DataNew$Condition)
@@ -45,7 +45,7 @@ summary(glht(Model.Set.Training, linfct = mcp(Set = "Tukey")), test = adjusted("
 
 ####Modeling Corectness for Stimuli Sets / Testing
 ```{r}
-DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
 DataNew$Condition <- as.factor(DataNew$Condition)
@@ -73,7 +73,12 @@ summary(glht(Model.Set.Testing, linfct = mcp(Set = "Tukey")), test = adjusted("h
 
 ```{r}
 
+<<<<<<< HEAD
 ExtremeData <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+=======
+Data <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+
+>>>>>>> b5d465c9b3477a7c6f331729ac9b68db7c747b98
 
 ExtremeData <- subset(Data, Condition == "1"|Condition == "2"|Condition == "4"|Condition == "6A"|Condition == "10")
 
@@ -106,7 +111,7 @@ panel.background = element_blank())
 
 ####Modeling Correctness for Stimuli Curviness / Training
 ```{r}
-DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
 DataNew$Condition <- as.factor(DataNew$Condition)
@@ -132,7 +137,7 @@ summary(glht(Model.Curviness.Training, linfct = mcp(Curviness = "Tukey")), test 
 
 ####Modeling Corectness for Stimuli Curviness / Testing
 ```{r}
-DataNew <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
 DataNew$Condition <- as.factor(DataNew$Condition)
@@ -161,7 +166,7 @@ summary(glht(Model.Curviness.Testing, linfct = mcp(Curviness = "Tukey")), test =
 
 ```{r}
 
-Data <- read.csv("D:/WIN/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+Data <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
 
 
 ExtremeData <- subset(Data, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "10"|Condition == "9")
@@ -188,6 +193,54 @@ ggplot(data=ExtremeData, aes(x=Block, y=RespCorr, colour= Curviness, linetype = 
   ggtitle("Tacnost kategorizacije")
 
 ```
+####Modeling Correctness for Block / Training
+```{r}
+DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+
+DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
+DataNew$Condition <- as.factor(DataNew$Condition)
+DataNew$Block <- as.factor(DataNew$Block)
+DataNew$Set <- as.factor(DataNew$Set)
 
 
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "10"|Condition == "9")
 
+DataTraining <- subset(DataSubset, TrialType == "Training")
+
+Model.Block.Training <- glmer(RespCorr ~ Block +
+                          (1|ParticipantID),
+                          data=DataTraining, 
+                          family= binomial)
+
+summary(Model.Block.Training)
+
+anova(Model.Block.Training)
+
+summary(glht(Model.Block.Training, linfct = mcp(Block = "Tukey")), test = adjusted("holm"))
+```
+
+####Modeling Corectness for Block / Testing
+```{r}
+DataNew <- read.csv("C:/Users/775/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv")
+
+DataNew$ParticipantID <- as.factor(DataNew$ParticipantID)
+DataNew$Condition <- as.factor(DataNew$Condition)
+DataNew$Block <- as.factor(DataNew$Block)
+DataNew$Curviness <- as.factor(DataNew$Curviness)
+
+
+DataSubset <- subset(DataNew, Condition == "1"|Condition == "2"|Condition == "3A"|Condition == "10"|Condition == "9")
+
+DataTesting <- subset(DataSubset, TrialType == "Testing")
+
+Model.Block.Testing <- glmer(RespCorr ~ Block +
+                          (1|ParticipantID),
+                          data=DataTesting, 
+                          family= binomial)
+
+summary(Model.Block.Testing)
+
+anova(Model.Block.Testing)
+
+summary(glht(Model.Block.Testing, linfct = mcp(Block = "Tukey")), test = adjusted("holm"))
+```
