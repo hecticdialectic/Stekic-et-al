@@ -1561,14 +1561,100 @@ summary(afex.Part3)$coefficients  %>%
                     pack_rows("Trial Type", 6, 7)%>%
                       pack_rows("Condition x Trial Type Interactions", 8, 15)
 
-##################################################################################
-##BALKANIZING OUR ANOVA TABLES
-
-
-
-
 
 ```
+```{r Part III - Post Hoc Interactions}
+
+
+Part3.Interaction.vPairs <- data.frame(pairs(emmeans(afex.Part3, 
+                    ~Condition * TrialType2,
+                    adjust = "none")))
+
+#TRAINING 
+Part3.Interaction.vPairs.Training.1 <-   rbind(rep(NA,6),Part3.Interaction.vPairs[1:4,])
+Part3.Interaction.vPairs.Training.2 <-   rbind(Part3.Interaction.vPairs[1,], rep(NA, 6), Part3.Interaction.vPairs[15:17,])
+Part3.Interaction.vPairs.Training.3 <-   rbind(Part3.Interaction.vPairs[2,], Part3.Interaction.vPairs[15,], rep(NA, 6),
+                                               Part3.Interaction.vPairs[28:29,])
+Part3.Interaction.vPairs.Training.4 <-   rbind(Part3.Interaction.vPairs[3,], Part3.Interaction.vPairs[16,], Part3.Interaction.vPairs[28,], 
+                                               rep(NA, 6), Part3.Interaction.vPairs[40,])
+Part3.Interaction.vPairs.Training.5 <-    rbind(Part3.Interaction.vPairs[4,], Part3.Interaction.vPairs[17,], Part3.Interaction.vPairs[29,], 
+                                               Part3.Interaction.vPairs[40,], rep(NA, 6))
+
+#TESTING OLD
+Part3.Interaction.vPairs.TestingOld.1 <-   rbind(rep(NA,6),Part3.Interaction.vPairs[61:64,])
+Part3.Interaction.vPairs.TestingOld.2 <-   rbind(Part3.Interaction.vPairs[61,], rep(NA, 6), Part3.Interaction.vPairs[70:72,])
+Part3.Interaction.vPairs.TestingOld.3 <-   rbind(Part3.Interaction.vPairs[62,], Part3.Interaction.vPairs[70,], rep(NA, 6),
+                                               Part3.Interaction.vPairs[78:79,])
+Part3.Interaction.vPairs.TestingOld.4 <-   rbind(Part3.Interaction.vPairs[63,], Part3.Interaction.vPairs[71,], Part3.Interaction.vPairs[78,], 
+                                               rep(NA, 6), Part3.Interaction.vPairs[85,])
+Part3.Interaction.vPairs.TestingOld.5 <-    rbind(Part3.Interaction.vPairs[64,], Part3.Interaction.vPairs[72,], Part3.Interaction.vPairs[79,], 
+                                               Part3.Interaction.vPairs[85,], rep(NA, 6))
+
+#TESTING NEW
+Part3.Interaction.vPairs.TestingNew.1 <-   rbind(rep(NA,6),Part3.Interaction.vPairs[96:99,])
+Part3.Interaction.vPairs.TestingNew.2 <-   rbind(Part3.Interaction.vPairs[96,], rep(NA, 6), Part3.Interaction.vPairs[100:102,])
+Part3.Interaction.vPairs.TestingNew.3 <-   rbind(Part3.Interaction.vPairs[97,], Part3.Interaction.vPairs[100,], rep(NA, 6),
+                                               Part3.Interaction.vPairs[103:104,])
+Part3.Interaction.vPairs.TestingNew.4 <-   rbind(Part3.Interaction.vPairs[98,], Part3.Interaction.vPairs[101,], Part3.Interaction.vPairs[103,], 
+                                               rep(NA, 6), Part3.Interaction.vPairs[105,])
+Part3.Interaction.vPairs.TestingNew.5 <-    rbind(Part3.Interaction.vPairs[99,], Part3.Interaction.vPairs[102,], Part3.Interaction.vPairs[104,], 
+                                               Part3.Interaction.vPairs[105,], rep(NA, 6))
+
+#COMPARISONS OF CONDITIONS WITHIN TRAINING TRIALS
+Part3.Interaction.Training <- cbind.data.frame(
+  levels(Part3Data$Condition), #Conditions
+  as.vector(tapply(subset(Part3Data, TrialType2 == "Training")$RespCorr, subset(Part3Data, TrialType2 == "Training")$Condition, mean)), #Means Within Training 
+  Part3.Interaction.vPairs.Training.1$p.value,
+  Part3.Interaction.vPairs.Training.2$p.value,
+  Part3.Interaction.vPairs.Training.3$p.value,
+  Part3.Interaction.vPairs.Training.4$p.value,
+  Part3.Interaction.vPairs.Training.5$p.value
+)
+
+Part3.Interaction.Training %>% 
+    `colnames<-`(c("Condition", "Proportion Correct", "v NL", "v I", "v CI", "v Con", "v Arb")) %>%
+    mutate_if(is.numeric, round, 3) %>%
+    mutate_at(.vars = vars("v NL", "v I", "v CI", "v Con", "v Arb"), funs(ifelse(.<0.001, "<0.001", .))) %>%
+          knitr::kable(caption = 'Part III - Post Hoc Comparisons of Condition within Training Trials', "html") %>%
+            kable_styling(full_width = F) %>%
+              add_header_above(c(" " = 2, "Post Hoc Comparisons (p values)" = 5),
+                   font_size = 12) 
+
+#COMPARISONS OF CONDITIONS WITHIN TESTING TRIALS
+Part3.Interaction.Testing <- cbind.data.frame(
+  levels(Part3Data$Condition), #Conditions
+  as.vector(tapply(subset(Part3Data, TrialType == "Testing")$RespCorr, subset(Part3Data, TrialType == "Testing")$Condition, mean)), #Means Within Testing 
+  Part3.Interaction.vPairs.TestingOld.1$p.value,
+  Part3.Interaction.vPairs.TestingOld.2$p.value,
+  Part3.Interaction.vPairs.TestingOld.3$p.value,
+  Part3.Interaction.vPairs.TestingOld.4$p.value,
+  Part3.Interaction.vPairs.TestingOld.5$p.value,
+  Part3.Interaction.vPairs.TestingNew.1$p.value,
+  Part3.Interaction.vPairs.TestingNew.2$p.value,
+  Part3.Interaction.vPairs.TestingNew.3$p.value,
+  Part3.Interaction.vPairs.TestingNew.4$p.value,
+  Part3.Interaction.vPairs.TestingNew.5$p.value
+)
+
+Part3.Interaction.Testing %>% 
+    `colnames<-`(c("Condition", "Proportion Correct", "v NL (O)", "v I (O)", "v CI (O)", "v Con (O)", "v Arb (O)",
+                   "v NL (N)", "v I (N)", "v CI (N)", "v Con (N)", "v Arb (N)")) %>%
+    mutate_if(is.numeric, round, 3) %>%
+    mutate_at(.vars = vars("v NL (O)", "v I (O)", "v CI (O)", "v Con (O)", "v Arb (O)",
+                   "v NL (N)", "v I (N)", "v CI (N)", "v Con (N)", "v Arb (N)"), funs(ifelse(.<0.001, "<0.001", .))) %>%
+          knitr::kable(caption = 'Part III - Post Hoc Comparisons of Condition within Testing Trials', "html") %>%
+            kable_styling(full_width = F) %>%
+              add_header_above(c(" " = 2, "Testing - Old Trials" = 5, "Testing - New Trials" = 5),
+                   font_size = 12) %>%
+                add_header_above(c(" " = 2,  "Post Hoc Comparisons (p values)" = 10), 
+                                 font_size = 14)
+
+```
+
+Same story as for Part 2 (above). The Interaction effect is explained by the fact that the Iconic, Counter-Iconic, and Conventional label learners perform significantly better (but not differently from each other) during Training trials than participants in the No Label or Arbitrary Label Conditions (who do not perform different from each other).
+
+In testing trials, there are no post-hoc differences - (there is a single point but it isn't very interesting) between the conditions
+
 
 ```{r RT Analysis for PART III}
 afex.Part3.RT <- mixed(RT ~ Condition * TrialType2 + (1|ParticipantID),
@@ -1643,7 +1729,7 @@ ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Response Time - Par
 
 ```{r Part 2 - Block Analysis for Training Trials}
 
-afex.Part3.Block <- mixed(RT ~ Condition * Block + (1|ParticipantID),
+afex.Part3.Block <- mixed(RespCorr ~ Condition * Block + (1|ParticipantID),
                          data=subset(Part3Data, TrialType2 == "Training") ,
                         method = 'LRT')
 
@@ -1656,10 +1742,8 @@ afex.Part3.Block$anova_table
 # PART IV - THE WHOLE SHEBANG
 
 ```{r I'ma converge this whole house}
-Part2Cut <- subset(Part2Data, select = -c(Situacija, TipBloka, Blok))
 
-
-Part4Data <- rbind(Part2Cut, Part3Data)
+Part4Data <- rbind(Part2Data, Part3Data)
 
 afex.Part4 <- mixed(RespCorr ~ Condition * TrialType2 + (1|ParticipantID),
                          data=Part4Data,
@@ -1879,16 +1963,78 @@ ggplot(data=Part4AggNew, aes(x=Block, y=RespCorr, group= Condition)) +
   theme_alan() +
   ggtitle("Omnibus Comparison")
 
-#GGSAVE
+```
 
 
+# Alan's Extra Bits and Bobs and Impressive things because he's a super cool guy
+
+## Data Exclusion Table
+
+Lets look at the number of participants who were excluded along the way
+
+```{r Data Exclusion Table}
+
+exclusions <- c("All Data Collected",
+                "NA Response Value", 
+                "Negative RT Values", 
+                "High RT Values",
+                "Spammers",
+                "Cowards/Bravos",
+                "RT Extremes (by Trial)",
+                "Final"
+                )
+
+trialnums <- c(nrow(CleanData), #All Data
+               nrow(CleanData.RespCorr), #NA Participant
+               nrow(CleanData.RTNegCorr), #NEgative RT Values
+               nrow(CleanData2), #High RT Values
+               nrow(CleanData5), #Spammers
+               nrow(CleanData6), #Cowards/Bravos
+               nrow(CleanData.RTTrimmed), #Long Trials
+               nrow(CleanData.Final)
+               )
+
+participantnums <- c(nrow(CleanData)/240, #All Data
+               nrow(CleanData.RespCorr)/240, #NA Participant
+               nrow(CleanData.RTNegCorr)/240, #NEgative RT Values
+               nrow(CleanData2)/240, #High RT Values
+               nrow(CleanData5)/240, #Spammers
+               nrow(CleanData6)/240, #Cowards/Bravos
+               nrow(CleanData6)/240, #Long Trials
+               nrow(CleanData6)/240 #we don't lose participants for the last cut so we use the value from above
+               )
+
+trialscut <- c(NA,
+               nrow(CleanData)- nrow(CleanData.RespCorr), #NA Participant
+               nrow(CleanData.RespCorr) - nrow(CleanData.RTNegCorr), #NEgative RT Values
+               nrow(CleanData.RTNegCorr) - nrow(CleanData2), #High RT Values
+               nrow(CleanData2) - nrow(CleanData5), #Spammers
+               nrow(CleanData5) - nrow(CleanData6), #Cowards/Bravos
+               nrow(CleanData6) - nrow(CleanData.RTTrimmed), #Long Trials
+               NA
+               )
+
+participantscut <- c(NA, #All Data
+               nrow(CleanData)/240 - nrow(CleanData.RespCorr)/240, #NA Participant
+               nrow(CleanData.RespCorr)/240 - nrow(CleanData.RTNegCorr)/240, #NEgative RT Values
+               nrow(CleanData.RTNegCorr)/240 - nrow(CleanData2)/240, #High RT Values
+               nrow(CleanData2)/240 - nrow(CleanData5)/240, #Spammers
+               nrow(CleanData5)/240 - nrow(CleanData6)/240, #Cowards/Bravos
+               NA, #Long Trials
+               NA #we don't lose participants for the last cut so we use the value from above
+               )
 
 
+ExclusionsTable <- cbind.data.frame(exclusions, participantnums, trialnums, participantscut, trialscut)
 
+ExclusionsTable %>%  
+      `colnames<-`(c("Exclusion Criteria", "Participants", "Trials", "Participants Excluded", "Trials Excluded"))%>% 
+      mutate_if(is.numeric, round, digits = 0) %>% 
+            knitr::kable(caption = "Exclusion Table - Participants and Trials Cut by Exclusion Criteria" ) %>%
+              kable_styling(full_width= F)
 
 
 ```
-
 
 
 
