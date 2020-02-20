@@ -412,71 +412,20 @@ ggplot(CleanData.RTTrim5, aes(RT)) +
 
 CleanData3 <- CleanData.RTTrim5
 
-#Splitting Testing Trials
-participantIDs <- unique(CleanData3$ParticipantID)
-participantdata <- list()
-participantdata.training <- list()
-participantdata.testing <- list()
 
-testingtrials <- list()
-trainingtrials <- list()
-
-
-for (participant in participantIDs) {
-  
-  participantdata <- subset(CleanData3, ParticipantID == participant)
-  participantdata.training <- subset(participantdata, TrialType == "Training")
-  participantdata.testing <- subset(participantdata, TrialType == "Testing")
-  
-  
-  TrainingFigures <- unique(participantdata.training$Image)
-  
-  participantdata.training$Generalisation <- NA
-  
-  participantdata.testing$Generalisation <- ifelse(
-    participantdata.testing$Image %in% TrainingFigures,
-    "Old",
-    "New")
-  
-  trainingtrials <- rbind(trainingtrials, participantdata.training)
-  testingtrials <- rbind(testingtrials, participantdata.testing)
-  
-  
-}
-
-CleanData4 <- rbind(trainingtrials, testingtrials)
-
-
-#Factor levels, adding Trial Type 2
-
-CleanData4$TrialType <- factor(CleanData4$TrialType, level = c ("Training", "Testing"))
-CleanData4$TrialType2 <- paste(CleanData4$TrialType, CleanData4$Generalisation, sep = "-")
-CleanData4$Generalisation <- as.factor(CleanData4$Generalisation)
-
-CleanData4$TrialType2 <- factor(CleanData4$TrialType2, level = c ("Training-NA", "Testing-Old", "Testing-New"),
-                                     labels = c("Training", "Testing-Old", "Testing-New"))
-
-
-# Obtaining the curviness of images from our original script
-
-CleanData4$Image <- sub("Stims/Figures/", "", CleanData4$Image)
-CleanData4$Image <- sub(".bmp", "", CleanData4$Image)
-
-CleanData4 <- separate(CleanData4, col=Image, into = c("ImageSeed", "JaggedvsCurved", "Curviness", "Set"), sep = "-")
-
-write.csv(CleanData4, file=("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Data/CleanData4.csv"))
 
 
 ```
+
 # Data Exclusion - Approachers and Spammers
 
 ```{r Data Exclusion - Approachers and Spammers, message = FALSE, warning = FALSE}
 
 #Adding a column for recoding
-CleanData4$holder <- paste(CleanData4$Location, CleanData4$RespKey, sep = "")
+CleanData2$holder <- paste(CleanData2$Location, CleanData2$RespKey, sep = "")
 
 #Score a column by whether participants chose to approach or retreat
-CleanData4$Approach <- mapvalues(CleanData4$holder,
+CleanData2$Approach <- mapvalues(CleanData2$holder,
                                  from = c("Left39", "Down38", "Up40", "Right37", 
                                           "Left37", "Down40", "Up38", "Right39"),
                                  to = c(rep("Approach", 4), rep("Retreat",4)
@@ -486,9 +435,9 @@ CleanData4$Approach <- mapvalues(CleanData4$holder,
 
 #First we will check for spammers - participants who vastly over-used any of the response keys
 
-CleanData4$RespKey <- factor(CleanData4$RespKey)
+CleanData2$RespKey <- factor(CleanData2$RespKey)
 KeyPresses <-
- CleanData4 %>%
+ CleanData2 %>%
  count(ParticipantID, RespKey, sort = FALSE)
 
 
@@ -507,7 +456,7 @@ SpammerKillList <- subset(KeyPresses, n > 88)
 SpammerList <- unique(SpammerKillList$ParticipantID)
 
 #Removing spammers from the data
-CleanData5 <- CleanData4
+CleanData5 <- CleanData2
 
 for (Spammer in SpammerList) {
   
@@ -556,6 +505,151 @@ We calculated 3x the Interquartile range as our extreme outlier cutoff point and
 
 We take the same stance on Bravos/Cowards - those who either approach or retreat from Aliens at an extreme rate (again they should approach/retreat equally often)
 
+# Data Exclusion - Response Times
+
+So far we've been taking the approach of just trying to get our RT exclusion closer to normal, but we didn't really consider dropping any trials based on their RT values
+
+I think after some further consideration we should consider doing so - see below
+
+```{r Data Exclusion - Response Times}
+
+#Above we looked only at the extremeness of Response TImes, but didn't consider the quality of the data from long trials. We certainly don't want to wholesale exclude data from entire participants for long trials, but it seems likely that in our extreme outliers we have individual trials where participants were likely to have been distracted by something else (I cannot imagine someone taking 15 seconds to truly consider a trial in this experiment)
+
+#A first Look
+
+extremeRTsHigh <- subset(CleanData6, RT > extreme.high) #Take only extremely slow trials
+extremeRTsLow <- subset(CleanData6, RT < extreme.low) #Take only extremely fast trials (note that there actually aren't any extreme low RT trials)
+normalTrials <- subset(CleanData6, RT < extreme.high) #Take only normal trials
+
+highRTmeans <- data.frame(tapply(extremeRTsHigh$RespCorr, extremeRTsHigh$Condition, mean))
+RTmeans <- data.frame(tapply(normalTrials$RespCorr, normalTrials$Condition, mean))
+
+RTComparison <- cbind(highRTmeans, RTmeans)
+RTComparison <- RTComparison[-1,] #remove a useless first row
+
+RTComparison$Condition <- c(1, 10, 2, "3A", "3B", 4, 5, "6A", "6B", 7, 8, 9)
+colnames(RTComparison) <- c("High RT Outliers", "Normal Trials", "Condition")
+
+RTComparison <- subset(RTComparison, select = c("Condition", "Normal Trials", "High RT Outliers"))
+
+RTComparison$Difference <- RTComparison$`Normal Trials` - RTComparison$`High RT Outliers`
+
+RTComparison %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+            knitr::kable(caption = "Comparison of Proportion Correct on Normal Trials vs Extreme Outlier Trials (RT)", ) %>%
+              kable_styling(full_width= F)
+
+
+
+```
+
+We can see in the above table that the differences in Proportion correct can be pretty substantial on very slow trials - up to 27% lower than on non-extreme trials, so we're going to simply remove these trials from the data entirely, rather than modifying the RT values for these trials to make our distribution for RT more normal
+
+However the fairest way to do this is to actually calculate extreme values on a by trial-type basis and then exclude them, which we do below
+
+```{r Data Exclusion - Response Times II}
+
+#Training Trials
+CleanData6.Training <- subset(CleanData6, TrialType == "Training")
+
+CleanData6.Training.lowerquart <- quantile(CleanData6.Training$RT)[2]
+CleanData6.Training.upperquart <- quantile(CleanData6.Training$RT)[4]
+
+CleanData6.Training.Interquartile <- CleanData6.Training.upperquart - CleanData6.Training.lowerquart
+
+CleanData6.Training.extreme.high <- CleanData6.Training.upperquart + (CleanData6.Training.Interquartile * 3)
+
+CleanData6.Training.CutTrials <- subset(CleanData6.Training, RT > CleanData6.Training.extreme.high )
+CleanData6.Training.CutTrials.ParticipantCounts <- count(CleanData6.Training.CutTrials, ParticipantID, sort = TRUE)
+
+CleanData6.Training.UnCutTrials <- subset(CleanData6.Training, RT < CleanData6.Training.extreme.high )
+ 
+
+#Testing Trials
+
+CleanData6.Testing <- subset(CleanData6, TrialType == "Testing")
+
+CleanData6.Testing.lowerquart <- quantile(CleanData6.Testing$RT)[2]
+CleanData6.Testing.upperquart <- quantile(CleanData6.Testing$RT)[4]
+
+CleanData6.Testing.Interquartile <- CleanData6.Testing.upperquart - CleanData6.Testing.lowerquart
+
+CleanData6.Testing.extreme.high <- CleanData6.Testing.upperquart + (CleanData6.Testing.Interquartile * 3)
+
+CleanData6.Testing.CutTrials <- subset(CleanData6.Testing, RT > CleanData6.Testing.extreme.high )
+CleanData6.Testing.CutTrials.ParticipantCounts <- count(CleanData6.Testing.CutTrials, ParticipantID, sort = TRUE)
+
+CleanData6.Testing.UnCutTrials <- subset(CleanData6.Testing, RT < CleanData6.Testing.extreme.high )
+
+
+#Rebinding the Two Together
+CleanData.RTTrimmed <- rbind(CleanData6.Training.UnCutTrials, CleanData6.Testing.UnCutTrials )
+
+#Distribution of RTs after trimming extreme highs off
+ggplot(CleanData.RTTrimmed, aes(RT)) +
+  geom_density() +
+  ggtitle("Density Plot of RTs- Extreme Outliers Removed")
+```
+
+```{r Data Cleaning - Adding Final Columns}
+
+#Splitting Testing Trials
+participantIDs <- unique(CleanData.RTTrimmed$ParticipantID)
+participantdata <- list()
+participantdata.training <- list()
+participantdata.testing <- list()
+
+testingtrials <- list()
+trainingtrials <- list()
+
+
+for (participant in participantIDs) {
+  
+  participantdata <- subset(CleanData3, ParticipantID == participant)
+  participantdata.training <- subset(participantdata, TrialType == "Training")
+  participantdata.testing <- subset(participantdata, TrialType == "Testing")
+  
+  
+  TrainingFigures <- unique(participantdata.training$Image)
+  
+  participantdata.training$Generalisation <- NA
+  
+  participantdata.testing$Generalisation <- ifelse(
+    participantdata.testing$Image %in% TrainingFigures,
+    "Old",
+    "New")
+  
+  trainingtrials <- rbind(trainingtrials, participantdata.training)
+  testingtrials <- rbind(testingtrials, participantdata.testing)
+  
+  
+}
+
+CleanData4 <- rbind(trainingtrials, testingtrials)
+
+
+#Factor levels, adding Trial Type 2
+
+CleanData4$TrialType <- factor(CleanData4$TrialType, level = c ("Training", "Testing"))
+CleanData4$TrialType2 <- paste(CleanData4$TrialType, CleanData4$Generalisation, sep = "-")
+CleanData4$Generalisation <- as.factor(CleanData4$Generalisation)
+
+CleanData4$TrialType2 <- factor(CleanData4$TrialType2, level = c ("Training-NA", "Testing-Old", "Testing-New"),
+                                     labels = c("Training", "Testing-Old", "Testing-New"))
+
+
+# Obtaining the curviness of images from our original script
+
+CleanData4$Image <- sub("Stims/Figures/", "", CleanData4$Image)
+CleanData4$Image <- sub(".bmp", "", CleanData4$Image)
+
+CleanData.Final <- separate(CleanData4, col=Image, into = c("ImageSeed", "JaggedvsCurved", "Curviness", "Set"), sep = "-")
+
+write.csv(CleanData.Final, file=("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Data/CleanDataFinal.csv"))
+
+
+```
+
 
 # The Thesis 
 
@@ -569,7 +663,7 @@ The first thing we need to do is take a look at our own counterbalanced subcondi
 
 ```{r Exploring and collapsing Condition 3 subconditions, warning = FALSE}
 
-Exp3Sub <- subset(CleanData6, Condition =="3A"|Condition == "3B")
+Exp3Sub <- subset(CleanData.Final, Condition =="3A"|Condition == "3B")
 
 Exp3Sub$Condition <- factor(Exp3Sub$Condition)
 Exp3Sub$Block <- factor(Exp3Sub$Block)
@@ -622,7 +716,7 @@ So above we see no significant effect of Condition when looking at only subcondi
 ```{r Importing and modifying data for Lupyan Replication Comparison}
 
 # Subsetting out only the conditions for the replication
-ReplicationData2007 <- subset(CleanData6, Condition == 10|Condition == "3A"|Condition == "3B")
+ReplicationData2007 <- subset(CleanData.Final, Condition == 10|Condition == "3A"|Condition == "3B")
 
 # Name the levels of Condition, rather than having them be numbers
 # This also collapses subconditions 3A and 3B (justified above)
@@ -642,7 +736,7 @@ ggplot(data=ReplicationAgg, aes(x=Block, y=RespCorr, group= Condition)) +
   geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci), width= 0.2, size = 1, position=pd)+
   scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#000000")) +
   labs(x="Block", y="Proportion of Correct Responses") +
-  scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  scale_y_continuous(limits = c(0.4,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
   facet_grid(~TrialType2, scales="free", space= "free_x") +
   theme_alan() +
   ggtitle("Replication of Lupyan (2017)")
@@ -748,6 +842,9 @@ summary(afex.Replication)$coefficients  %>%
                   pack_rows("Condition", 2, 2) %>%
                     pack_rows("Trial Type", 3, 4)%>%
                       pack_rows("Interaction", 5, 6)
+
+
+
 ```
 
 So here we see what I think look like sensible results - there is no main effect of Condition, because it is subsumed by the Interaction effect (which is where the money is) - Participants who learn a Conventional Category label do better on Training Trials, but worse on Testing Trials (of both types)
@@ -820,36 +917,105 @@ ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Replication 2007 - 
 The other thing to look at is the learning trajectory for training (i.e. the effect of Block)
 Previous models were not converging and this I think had to do with "double dipping" the "block" values- i.e. mostly a naming thing
 
-However 
-
-
 
 
 ```{r Block Analysis for training}
 
+ReplicationData2007$Block <- factor(ReplicationData2007$Block)
 afex.Replication.Block <- mixed(RespCorr ~ Condition * Block + (1|ParticipantID),
                          data=subset(ReplicationData2007, TrialType2 == "Training") ,
                          family=binomial,
                          control=glmerControl(optimizer="bobyqa"),
                         method = 'LRT')
 
-afex.Replication.Block$anova_table
+afex.Replication.Block$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Mixed Model Results - Replication of Lupyan (2007) - Effect of Block", ) %>%
+              kable_styling(full_width= F)
 
+
+#Learning Trajectories (effect of block)
+##Block Descriptives
+Replication.Block <- summarySE(data=subset(ReplicationData2007, TrialType2 == "Training"),
+                             measurevar = "RespCorr",
+                             groupvars = "Block")
+
+##Blocks vs. Chance
+Replication.Block.vchance <- test(emmeans(afex.Replication.Block, 
+                    ~as.factor(Block),
+                    adjust = "none"))
+
+##Blocks vs. Each Other
+
+Replication.Block.vPairs <- data.frame(pairs(emmeans(afex.Replication.Block, 
+                    ~Block,
+                    adjust = "none")))
+
+###Contrasts of Interest
+Contrasts.firstorder <- c("1 - 2", "2 - 3", "3 - 4", "4 - 5", "5 - 6", "6 - 7", "7 - 8", "8 - 9")
+Contrasts.firstorder.vals <- filter(Replication.Block.vPairs, contrast %in% Contrasts.firstorder)
+Contrasts.firstorder.vals <- rbind(rep(NA, 6), Contrasts.firstorder.vals) #Put in a dummy first row
+
+Contrasts.secondorder <- c("1 - 3", "2 - 4", "3 - 5", "4 - 6", "5 - 7", "6 - 8", "7 - 9")
+Contrasts.secondorder.vals <- filter(Replication.Block.vPairs, contrast %in% Contrasts.secondorder)
+Contrasts.secondorder.vals <- rbind(rep(NA, 6), rep(NA, 6), Contrasts.secondorder.vals) #Put in a dummy first two rows
+
+
+
+###Creating a single dataframe for Blocks
+Replication.Block.Combo <- cbind.data.frame (
+  Replication.Block$Block, Replication.Block$RespCorr, 
+ Replication.Block.vchance$z.ratio,Replication.Block.vchance$p.value,
+Contrasts.firstorder.vals$z.ratio, Contrasts.firstorder.vals$p.value,
+Contrasts.secondorder.vals$z.ratio, Contrasts.secondorder.vals$p.value
+)
+
+
+###Knitting Block Table
+Replication.Block.Combo %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+          `colnames<-`(c("Block", "Mean",  
+                                "z value", "p value",
+                         "z value ", "p value ",
+                         "z value  ", "p value  "
+                         )) %>%
+              mutate_at(.vars= vars("p value", "p value ", "p value  "), funs(ifelse(.<0.001, "<0.001", .))) %>%
+                knitr::kable(caption = "Replication - Learning Trajectory (Effect of Block)","html") %>%
+                  kable_styling(full_width= F) %>%
+                add_header_above(c("", "",  "Comparison to Chance" = 2, 
+                               "Comparison to Previous Block" = 2,
+                                "Comparison to Two Blocks Before" = 2),
+                               font_size = 12)
+
+                
+
+                            
+                            
 ```
 
+So looking at the data in this way isn't ultimately as interesting as I had hoped it would be- the post hoc comparisons at least
+
+I think the basic Linear Model Outputs are actually all that we need, but they are maybe a little bit difficult to really describe - and here we actually have both main effects *and* an interaction. The interaction tells us that performance does not increase over blocks in the same way for both conditions of the experiment, but i'm not certain that this is meaningful - they do seem to follow pretty similar trajectories
+
+SO I"M NOT SURE WHAT TO MAKE OF THAT
 
 # LUPYAN & CASASANTO EXTENSION - Exploring the effect of Iconicity on Category Label Learning
 
 ```{r Visualising Part II}
 
 # Subsetting out only the conditions for the replication
-Part2Data <- subset(CleanData6, Condition == 10|Condition == "3A"|Condition == "3B"|Condition == 1|Condition == 2)
+Part2Data <- subset(CleanData.Final, Condition == 10|Condition == "3A"|Condition == "3B"|Condition == 1|Condition == 2)
 
 # Name the levels of Condition, rather than having them be numbers
 # This also collapses subconditions 3A and 3B (justified above)
 Part2Data$Condition <- factor(Part2Data$Condition,
                             levels= c(10, 1, 2, "3A", "3B"),
-                            labels = c("No Label", "Iconic", "Counter-Iconic", "Conventional Category","Conventional Category"))
+                            labels = c("No Label", "Iconic (Category)", "Counter-Iconic (Category)", "Conventional (Category)",
+                                       "Conventional (Category)"))
 
 #Aggregate our data for plotting
 Part2Agg <- summarySE(Part2Data, measurevar = "RespCorr", groupvars = c("Condition", "TrialType2", "Block"))
@@ -869,42 +1035,6 @@ ggplot(data=Part2Agg, aes(x=Block, y=RespCorr, group= Condition)) +
 
 #GGSAVE
 ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Category Labels.png", plot = last_plot(), device = NULL, path = NULL,
-  width = 8, height = 4, units = c("in", "cm", "mm"),
-  dpi = 600)
-
-
-###THE BALKANIZATION OF ALL THINGS BEAUTIFUL
-#Balkanization of Conditions (Situacija)
-Part2Data$Situacija <- factor(Part2Data$Condition,
-                            levels= c("No Label", "Iconic", "Counter-Iconic", "Conventional Category","Conventional Category"),
-                            labels = c("Bez Naziva", "Kongruentno", "Nekongruentno", "Konvencijalno","Konvencijalno"))
-
-#Balkanization of Trial Type
-Part2Data$TipBloka <- factor(Part2Data$TrialType2,
-                              levels = c("Training", "Testing-Old", "Testing-New"),
-                              labels = c("Trening", "Test-Stari", "Test-Novi"))
-
-Part2Data$Blok <- factor( Part2Data$Block)
-
-
-#BALKANAGG
-Part2AggBalkan <- summarySE(Part2Data, measurevar = "RespCorr", groupvars = c("Situacija", "TipBloka", "Blok"))
-
-#SAVE US THE BALKANS HAVE TAKEN OVER OUR GRAPHS
-
-ggplot(data=Part2AggBalkan, aes(x=Blok, y=RespCorr, group= Situacija)) +
-  geom_line(aes(linetype = Situacija, color = Situacija), size = 1.2, position=pd) +
-  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Situacija), width= 0.2, size = 1, position=pd)+
-  scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca")) +
-  scale_linetype_manual(values = c("dashed", rep("solid",3))) +
-  labs(x="Blok", y="Proporcija Tacnosti") +
-  scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
-  facet_grid(~TipBloka, scales="free", space= "free_x") +
-  theme_alan() +
-  ggtitle("Eksperimentalne situacije - nazivi kategorija")
-
-#GGSAVE
-ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Category Labels - BALKANIZED.png", plot = last_plot(), device = NULL, path = NULL,
   width = 8, height = 4, units = c("in", "cm", "mm"),
   dpi = 600)
 
@@ -956,60 +1086,194 @@ summary(afex.Part2)$coefficients  %>%
                     pack_rows("Trial Type", 5, 6)%>%
                       pack_rows("Condition x Trial Type Interactions", 7, 12)
 
+
+
+##Post-Hoc Effect of Condition
+Part2.Condition <- summarySE(data=Part2Data,
+                             measurevar = "RespCorr",
+                             groupvars = "Condition")
+
+Part2.Condition.EM <- emmeans(afex.Part2, ~Condition)
+
+##Condition vs. Chance
+Part2.Condition.vchance <- test(Part2.Condition.EM, adjust = "none")
+
+##Condition vs. Each Other
+Part2.Condition.vPairs <- data.frame(pairs(Part2.Condition.EM, adjust = "none" ))
+
+###NoLabel Baseline
+Part2.Condition.vPairs.1 <- 
+  rbind(rep(NA,6),Part2.Condition.vPairs[1:3,])
+#Iconic Baseline
+Part2.Condition.vPairs.2 <- 
+  rbind(Part2.Condition.vPairs[1,], rep(NA,6),Part2.Condition.vPairs[4:5,])
+#Counter-Iconic Baseline
+Part2.Condition.vPairs.3 <- 
+  rbind(Part2.Condition.vPairs[2,], Part2.Condition.vPairs[4,], rep(NA,6),Part2.Condition.vPairs[6,])
+#Conventional Baseline
+Part2.Condition.vPairs.4 <- 
+  rbind(Part2.Condition.vPairs[3,],Part2.Condition.vPairs[5,],Part2.Condition.vPairs[6,], rep(NA,6))
+
+###Creating a single dataframe for Blocks
+Part2.Condition.Combo <- cbind.data.frame (
+  Part2.Condition$Condition, Part2.Condition$N, Part2.Condition$RespCorr, Part2.Condition$se,
+  Part2.Condition.vchance$z.ratio,Part2.Condition.vchance$p.value,
+  Part2.Condition.vPairs.1$p.value,
+  Part2.Condition.vPairs.2$p.value,
+  Part2.Condition.vPairs.3$p.value,
+  Part2.Condition.vPairs.4$p.value
+)
+
+colnames(Part2.Condition.Combo) <- c("Condition", "n", "Mean", "SE", 
+                                "z v chance", "p v chance",
+                                "p v NL",
+                                "p v I",
+                                "p v CI",
+                                "p v Con"
+                                )
+
+###Knitting Condition Table
+Part2.Condition.Combo %>%  
+  mutate_if(is.numeric, round, 3) %>%
+    mutate_at(.vars = "z v chance", round, 2)%>%
+    mutate_at(.vars = vars("p v chance", "p v NL", "p v I", "p v CI", "p v Con"),
+        funs(ifelse(.<0.001, "<0.001", .))) %>%
+          knitr::kable(caption = 'Part II- Descriptive Statistics - Condition', "html") %>%
+            kable_styling(full_width = F) %>%
+              add_header_above(c("", "Descriptive Stats" = 3, "Comparison to Chance" = 2, 
+                     "vs No Label" = 1,
+                     "vs Iconic" = 1,
+                     "vs Counter-Iconic" = 1,
+                     "vs Conventional" = 1),
+                   font_size = 12)
+
 ##################################################################################
-##BALKANIZING OUR ANOVA TABLES
-afex.Part2$anova_table %>% 
-  data.frame() %>% 
-    tibble::rownames_to_column(var= "Variable") %>%
-      mutate(Variable = factor(Variable,
-                              levels = c("Condition", "TrialType2", "Condition:TrialType2"),
-                              labels = c("Situacija", "TipBloka", "Situacija x TipBloka")))%>%
-        mutate_if(is.numeric, round, digits = 3) %>% 
-          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
-            mutate_at("p", funs(ifelse(.<0.001, "<0.001", .))) %>%
-                knitr::kable(caption = "Mixed Model Results - Part 2", ) %>%
-                kable_styling(full_width= F)
 
 
+```
 
-#I LEAVE IT TO THE KAT TO TRANSFORM THIS ONE INTO SERBIAN (AND MAKE the changes to above)
-summary(afex.Part2)$coefficients  %>%
-  data.frame() %>%
-    tibble::rownames_to_column(var= "FixedEffect") %>% 
-    mutate(FixedEffect = recode_factor(FixedEffect, 
-                                       `Condition1` = "Iconic",
-                                        `Condition2` = "Counter-Iconic",
-                                       `Condition3` = "Conventional",
-                                       `TrialType21` = "Testing - Old",
-                                       `TrialType22` = "Testing - New",
-                                       `Condition1:TrialType21` = "Iconic x Testing - Old",
-                                       `Condition2:TrialType21` = "Counter-Iconic x Testing - Old",
-                                       `Condition3:TrialType21` = "Conventional x Testing - Old",
-                                       `Condition1:TrialType22` = "Iconic x Testing - New",
-                                       `Condition2:TrialType22` = "Counter-Iconic x Testing - New",
-                                       `Condition3:TrialType22` = "Conventional x Testing - New"
-                                       )) %>%
-      `colnames<-`(c("Fixed Effect", "Estimate", "SE", "z", "p")) %>%
-        mutate_if(is.numeric, round, digits = 3) %>% 
-          mutate_at("p", funs(ifelse(.<0.001, "<0.001", .))) %>%
-            knitr::kable(caption = "Word Type Comparison- Fixed Effects Table", ) %>%
-              kable_styling(full_width= F) %>%
-                pack_rows("Intercept", 1, 1) %>%
-                  pack_rows("Condition", 2, 4) %>%
-                    pack_rows("Trial Type", 5, 6)%>%
-                      pack_rows("Condition x Trial Type Interactions", 7, 12)
+We now need post-hoc tests to better pull apart these effects. 
+
+For post hoc tests obviously we don't see anything looking at just a Condition effect (because there isn't one)
+What you need are post hoc tests of the interaction effects
+
+```{r Part 2- Post HOc Interactions}
+
+Part2.Interaction.vPairs <- data.frame(pairs(emmeans(afex.Part2, 
+                    ~Condition * TrialType2,
+                    adjust = "none")))
+
+#TRAINING 
+Part2.Interaction.vPairs.Training.1 <-   rbind(rep(NA,6),Part2.Interaction.vPairs[1:3,])
+Part2.Interaction.vPairs.Training.2 <-   rbind(Part2.Interaction.vPairs[1,], rep(NA, 6), Part2.Interaction.vPairs[12:13,])
+Part2.Interaction.vPairs.Training.3 <-   rbind(Part2.Interaction.vPairs[2,], Part2.Interaction.vPairs[12,], rep(NA, 6), Part2.Interaction.vPairs[22,])
+Part2.Interaction.vPairs.Training.4 <-   rbind(Part2.Interaction.vPairs[3,], Part2.Interaction.vPairs[13,], Part2.Interaction.vPairs[22,], rep(NA, 6))
+
+#TESTING OLD
+Part2.Interaction.vPairs.TestingOld.1 <-   rbind(rep(NA,6),Part2.Interaction.vPairs[39:41,])
+Part2.Interaction.vPairs.TestingOld.2 <-   rbind(Part2.Interaction.vPairs[39,], rep(NA, 6), Part2.Interaction.vPairs[46:47,])
+Part2.Interaction.vPairs.TestingOld.3 <-   rbind(Part2.Interaction.vPairs[40,], Part2.Interaction.vPairs[46,], rep(NA, 6),
+                                                 Part2.Interaction.vPairs[52,])
+Part2.Interaction.vPairs.TestingOld.4 <-   rbind(Part2.Interaction.vPairs[41,], Part2.Interaction.vPairs[47,], Part2.Interaction.vPairs[52,],
+                                                 rep(NA, 6))
+
+#TESTING NEW
+Part2.Interaction.vPairs.TestingNew.1 <-   rbind(rep(NA,6),Part2.Interaction.vPairs[61:63,])
+Part2.Interaction.vPairs.TestingNew.2 <-   rbind(Part2.Interaction.vPairs[61,], rep(NA, 6), Part2.Interaction.vPairs[64:65,])
+Part2.Interaction.vPairs.TestingNew.3 <-   rbind(Part2.Interaction.vPairs[62,], Part2.Interaction.vPairs[64,], rep(NA, 6),
+                                                 Part2.Interaction.vPairs[66,])
+Part2.Interaction.vPairs.TestingNew.4 <-   rbind(Part2.Interaction.vPairs[63,], Part2.Interaction.vPairs[65,], Part2.Interaction.vPairs[66,],
+                                                 rep(NA, 6))
+
+# I CAN'T FEEL FEELINGS ANYMORE
+Part2.Interaction.Combo <- cbind.data.frame (Part2.Condition.Combo, 
+  Part2.Interaction.vPairs.Training.1$p.value,
+  Part2.Interaction.vPairs.Training.2$p.value,
+  Part2.Interaction.vPairs.Training.3$p.value,
+  Part2.Interaction.vPairs.Training.4$p.value,
+  Part2.Interaction.vPairs.TestingOld.1$p.value,
+  Part2.Interaction.vPairs.TestingOld.2$p.value,
+  Part2.Interaction.vPairs.TestingOld.3$p.value,
+  Part2.Interaction.vPairs.TestingOld.4$p.value,
+  Part2.Interaction.vPairs.TestingNew.1$p.value,
+  Part2.Interaction.vPairs.TestingNew.2$p.value,
+  Part2.Interaction.vPairs.TestingNew.3$p.value,
+  Part2.Interaction.vPairs.TestingNew.4$p.value
+)
+
+colnames(Part2.Interaction.Combo) <- c("Condition", "n", "Mean", "SE", 
+                                "z v chance", "p v chance",
+                                "NL (M)", "I (M)", "CI (M)", "Con (M)",
+                                "NL (T)", "I (T)", "CI (T)", "Con (T)",
+                                "NL (O)", "I (O)", "CI (O)", "Con (O)",
+                                "NL (N)", "I (N)", "CI (N)", "Con (N)"
+                                )
+
+Part2.Interaction.Combo %>%  
+    mutate_if(is.numeric, round, 3) %>%
+    mutate_at(.vars = "z v chance", round, 2)%>%
+    mutate_at(.vars = vars("p v chance",
+                                "NL (M)", "I (M)", "CI (M)", "Con (M)",
+                                "NL (T)", "I (T)", "CI (T)", "Con (T)",
+                                "NL (O)", "I (O)", "CI (O)", "Con (O)",
+                                "NL (N)", "I (N)", "CI (N)", "Con (N)"),
+        funs(ifelse(.<0.001, "<0.001", .))) %>%
+          knitr::kable(caption = 'Part II - Post Hoc Tests - Interactions of Condition x Trial Type', "html") %>%
+            kable_styling(full_width = F) %>%
+              add_header_above(c("", "Descriptive Stats" = 3, "Comparison to Chance" = 2, 
+                     "vs No Label" = 1, "vs Iconic" = 1, "vs Counter-Iconic" = 1, "vs Conventional" = 1,
+                      "vs No Label" = 1, "vs Iconic" = 1, "vs Counter-Iconic" = 1, "vs Conventional" = 1,
+                     "vs No Label" = 1, "vs Iconic" = 1, "vs Counter-Iconic" = 1, "vs Conventional" = 1,
+                     "vs No Label" = 1, "vs Iconic" = 1, "vs Counter-Iconic" = 1, "vs Conventional" = 1),
+                   font_size = 12)  %>%
+                add_header_above(c(" " = 6,  "Main Effect" = 4, "Training Trials" = 4, "Testing - Old Trials" = 4, "Testing - New Trials" = 4), 
+                                 font_size = 14)
 
 
 
 
 ```
 
-We now need post-hoc tests to better pull apart these effects. ALAN WILL DO THESE LATER
+
+So unfortunately it can't kick that all out as a single viewable table (it's too big - glad I wasted an hour on it!)
+
+But we can kick out parts as individual tables
+
+```{r Part II Post Hoc Tests}
+
+#COMPARISONS OF CONDITIONS WITHIN TRAINING TRIALS
+subset(Part2.Interaction.Combo, select = c(Condition, Mean, `NL (T)`, `I (T)`, `CI (T)`, `Con (T)`)) %>%  
+    mutate_if(is.numeric, round, 3) %>%
+    mutate_at(.vars = vars("NL (T)", "I (T)", "CI (T)", "Con (T)"),
+        funs(ifelse(.<0.001, "<0.001", .))) %>%
+          knitr::kable(caption = 'Part II - Post Hoc Comparisons of Condition within Training Trials', "html") %>%
+            kable_styling(full_width = F) %>%
+              add_header_above(c(" " = 2, "Post Hoc Comparisons (p values)" = 4),
+                   font_size = 12) 
+
+#COMPARISONS OF CONDITIONS WITHIN TESTING TRIALS
+subset(Part2.Interaction.Combo, select = c(Condition, Mean, `NL (O)`, `I (O)`, `CI (O)`, `Con (O)`,
+                                           `NL (N)`, `I (N)`, `CI (N)`, `Con (N)`)) %>%  
+    mutate_if(is.numeric, round, 3) %>%
+    mutate_at(.vars = vars(`NL (O)`, `I (O)`, `CI (O)`, `Con (O)`, `NL (N)`, `I (N)`, `CI (N)`, `Con (N)`),
+        funs(ifelse(.<0.001, "<0.001", .))) %>%
+          knitr::kable(caption = 'Part II - Post Hoc Comparisons of Condition within Testing Trials', "html", booktabs = T) %>%
+            kable_styling(full_width = F) %>%
+              add_header_above(c(" " = 2, "Testing - Old Trials" = 4, "Testing - New Trials" = 4),
+                   font_size = 12) %>%
+                add_header_above(c(" " = 2,  "Post Hoc Comparisons (p values)" = 8), 
+                                 font_size = 14)
+
+
+```
+Finally something that gives a nice look.
+
+We can see that looking within Training Trials all of the conditions are different from No Label (but not different from each other)
+
+Within the Testing Trials however, none of the conditions are significantly different from each other - this seems a bit surprising but the variance within conditions is larger in Testing Trials and the number of trials fewer
 
 
 ```{r RT Analysis for PART II}
-
-
 afex.Part2.RT <- mixed(RT ~ Condition * TrialType2 + (1|ParticipantID),
                          data=Part2Data,
                          method = 'LRT')
@@ -1077,17 +1341,27 @@ ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Response Time - Par
 
 ```
 
+There are no RT effects at all, so we don't need to even think about doing post hoc tests
+
+
 ```{r Part 2 - Block Analysis for Training Trials}
 
-afex.Part2.Block <- mixed(RT ~ Condition * Block + (1|ParticipantID),
+afex.Part2.Block <- mixed(RespCorr ~ Condition * Block + (1|ParticipantID),
                          data=subset(Part2Data, TrialType2 == "Training") ,
-                        method = 'LRT')
+                        method = 'LRT', family = binomial)
 
-afex.Part2.Block$anova_table
+afex.Part2.Block$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Mixed Model Results - Extension of Lupyan & Cassasanto (2014) - Effect of Block", ) %>%
+              kable_styling(full_width= F)
 
 
 ```
-
+Again these block effects are very hard to sensibly interpret
 
 
 # PART 3 - INDIVIDUAL LABELS
@@ -1098,7 +1372,7 @@ In this case we want to look at differences between 6A and 6B and between 7, 8 ,
 
 ```{r Exploring and collapsing Condition 6 subconditions, warning = FALSE}
 
-Exp6Sub <- subset(CleanData6, Condition =="6A"|Condition == "6B")
+Exp6Sub <- subset(CleanData.Final, Condition =="6A"|Condition == "6B")
 
 Exp6Sub$Condition <- factor(Exp6Sub$Condition)
 Exp6Sub$Block <- factor(Exp6Sub$Block)
@@ -1150,7 +1424,7 @@ We have the same condition here as with Subconditions for Condition 3. There is 
 
 ```{r Exploring and collapsing Arbitrary Conditions (7,8,9), warning = FALSE}
 
-ArbSub <- subset(CleanData6, Condition ==7|Condition == 8|Condition == 9)
+ArbSub <- subset(CleanData.Final, Condition ==7|Condition == 8|Condition == 9)
 
 ArbSub$Condition <- factor(ArbSub$Condition)
 ArbSub$Block <- factor(ArbSub$Block)
@@ -1189,7 +1463,7 @@ ggplot(data=ArbSubAgg, aes(x=Block, y=RespCorr, group= Condition)) +
   scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
   facet_grid(~TrialType2, scales="free", space= "free_x") +
   theme_alan() +
-  ggtitle("Comparing Subconditions of Condition 6")
+  ggtitle("Comparing Arbitrary  6")
 
 #GGSAVE
 ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Arbitrary Condtions (7,8,9).png", plot = last_plot(), device = NULL, path = NULL,
@@ -1205,14 +1479,15 @@ Now we can move on to the main analysis of Part III, where we're looking at all 
 ```{r Visualising Part III}
 
 # Subsetting out only the conditions for the replication
-Part3Data <- subset(CleanData6, Condition == 10|Condition == 4|Condition == 5|Condition == "6A"|Condition == "6B"
+Part3Data <- subset(CleanData.Final, Condition == 10|Condition == 4|Condition == 5|Condition == "6A"|Condition == "6B"
                     |Condition == 7|Condition == 8|Condition == 9)
 
 # Name the levels of Condition, rather than having them be numbers
 # This also collapses subconditions 3A and 3B (justified above)
 Part3Data$Condition <- factor(Part3Data$Condition,
                             levels= c(10, 4, 5, "6A", "6B", 7, 8, 9),
-                            labels = c("No Label", "Iconic", "Counter-Iconic", "Conventional", "Conventional", rep("Arbitrary",3)))
+                            labels = c("No Label", "Iconic (Item)", "Counter-Iconic (Item)", "Conventional (Item)", "Conventional (Item)",
+                                       rep("Arbitrary",3)))
 
 #Aggregate our data for plotting
 Part3Agg <- summarySE(Part3Data, measurevar = "RespCorr", groupvars = c("Condition", "TrialType2", "Block"))
@@ -1294,5 +1569,355 @@ summary(afex.Part3)$coefficients  %>%
 
 
 ```
+
+```{r RT Analysis for PART III}
+afex.Part3.RT <- mixed(RT ~ Condition * TrialType2 + (1|ParticipantID),
+                         data=Part3Data,
+                         method = 'LRT')
+
+
+#Pretty up results and kick out as kable
+afex.Part3.RT$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Mixed Model Results - RTs - Part II", ) %>%
+              kable_styling(full_width= F)
+
+##Fixed Effects 
+summary(afex.Part3.RT)$coefficients  %>%
+  data.frame() %>%
+    tibble::rownames_to_column(var= "FixedEffect") %>% 
+    mutate(FixedEffect = recode_factor(FixedEffect, 
+                                       `Condition1` = "Iconic",
+                                        `Condition2` = "Counter-Iconic",
+                                       `Condition3` = "Conventional",
+                                       `Condition4` = "Arbitrary",
+                                       `TrialType21` = "Testing - Old",
+                                       `TrialType22` = "Testing - New",
+                                       `Condition1:TrialType21` = "Iconic x Testing - Old",
+                                       `Condition2:TrialType21` = "Counter-Iconic x Testing - Old",
+                                       `Condition3:TrialType21` = "Conventional x Testing - Old",
+                                       `Condition4:TrialType21` = "Arbitrary x Testing - Old",
+                                       `Condition1:TrialType22` = "Iconic x Testing - New",
+                                       `Condition2:TrialType22` = "Counter-Iconic x Testing - New",
+                                       `Condition3:TrialType22` = "Conventional x Testing - New", 
+                                       `Condition4:TrialType22` = "Arbitrary x Testing - New"
+                                       )) %>%
+      `colnames<-`(c("Fixed Effect", "Estimate", "SE", "df", "t", "p")) %>%
+        mutate_if(is.numeric, round, digits = 3) %>% 
+          mutate_at("p", funs(ifelse(.<0.001, "<0.001", .))) %>%
+            knitr::kable(caption = "Word Type Comparison- Fixed Effects Table - RTs - Part 2", ) %>%
+              kable_styling(full_width= F) %>%
+                pack_rows("Intercept", 1, 1) %>%
+                  pack_rows("Condition", 2, 5) %>%
+                    pack_rows("Trial Type", 6, 7)%>%
+                      pack_rows("Condition x Trial Type Interactions", 8, 15)
+
+
+Part3AggRT <- summarySE(Part3Data, measurevar = "RT", groupvars = c("Condition", "TrialType2", "Block"))
+
+Part3AggRT$Block <- factor(Part3AggRT$Block)
+
+#Plot our data
+ggplot(data=Part3AggRT, aes(x=Block, y=RT, group= Condition)) +
+  geom_line(aes(linetype = Condition, color = Condition), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RT - ci, ymax= RT + ci, color= Condition), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#000000", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  scale_linetype_manual(values = c(rep("dashed",5))) +
+  labs(x="Block", y="Response Time") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TrialType2, scales="free", space= "free_x") +
+  theme_alan() +
+  ggtitle("Response Time Comparison - Part 3")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Response Time - Part 3.png", plot = last_plot(), device = NULL, path = NULL,
+  width = 8, height = 4, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+
+```
+
+```{r Part 2 - Block Analysis for Training Trials}
+
+afex.Part3.Block <- mixed(RT ~ Condition * Block + (1|ParticipantID),
+                         data=subset(Part3Data, TrialType2 == "Training") ,
+                        method = 'LRT')
+
+afex.Part3.Block$anova_table
+
+
+```
+
+
+# PART IV - THE WHOLE SHEBANG
+
+```{r I'ma converge this whole house}
+Part2Cut <- subset(Part2Data, select = -c(Situacija, TipBloka, Blok))
+
+
+Part4Data <- rbind(Part2Cut, Part3Data)
+
+afex.Part4 <- mixed(RespCorr ~ Condition * TrialType2 + (1|ParticipantID),
+                         data=Part4Data,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                         method = 'LRT')
+
+afex.Part4$anova_table
+
+
+#Pretty up results and kick out as kable
+afex.Part4$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Mixed Model Results - Part 2", ) %>%
+              kable_styling(full_width= F)
+
+##Fixed Effects 
+summary(afex.Part4)$coefficients  %>%
+  data.frame() %>%
+    tibble::rownames_to_column(var= "FixedEffect") %>% 
+    mutate(FixedEffect = recode_factor(FixedEffect, 
+                                       `Condition1` = "Iconic (Category)",
+                                        `Condition2` = "Counter-Iconic (Category)",
+                                       `Condition3` = "Conventional (Category)",
+                                       `Condition4` = "Iconic (Item)",
+                                       `Condition5` = "Counter-Iconic (Item)",
+                                       `Condition6` = "Conventional (Item)",
+                                       `Condition7` = "Arbitrary",
+                                       `TrialType21` = "Testing - Old",
+                                       `TrialType22` = "Testing - New",
+                                       `Condition1:TrialType21` = "Iconic (Category) x Testing - Old",
+                                       `Condition2:TrialType21` = "Counter-Iconic (Category) x Testing - Old",
+                                       `Condition3:TrialType21` = "Conventional (Category) x Testing - Old",
+                                       `Condition4:TrialType21` = "Iconic (Item) x Testing - Old",
+                                       `Condition5:TrialType21` = "Counter-Iconic (Item) x Testing - Old",
+                                       `Condition6:TrialType21` = "Conventional (Item) x Testing - Old",
+                                       `Condition7:TrialType21` = "Arbitrary x Testing - Old",
+                                       `Condition1:TrialType22` = "Iconic (Category) x Testing - New",
+                                       `Condition2:TrialType22` = "Counter-Iconic (Category) x Testing - New",
+                                       `Condition3:TrialType22` = "Conventional (Category) x Testing - New",
+                                       `Condition4:TrialType22` = "Iconic (Item) x Testing - New",
+                                       `Condition5:TrialType22` = "Counter-Iconic (Item) x Testing - New",
+                                       `Condition6:TrialType22` = "Conventional (Item) x Testing - New",
+                                       `Condition7:TrialType22` = "Arbitrary x Testing - New"
+                                       )) %>%
+      `colnames<-`(c("Fixed Effect", "Estimate", "SE", "z", "p")) %>%
+        mutate_if(is.numeric, round, digits = 3) %>% 
+          mutate_at("p", funs(ifelse(.<0.001, "<0.001", .))) %>%
+            knitr::kable(caption = "Word Type Comparison- Fixed Effects Table", ) %>%
+              kable_styling(full_width= F) %>%
+                pack_rows("Intercept", 1, 1) %>%
+                  pack_rows("Condition", 2, 8) %>%
+                    pack_rows("Trial Type", 9, 10)%>%
+                      pack_rows("Condition x Trial Type Interactions", 11, 24)
+
+Part4Agg <- summarySE(Part4Data, measurevar = "RespCorr", groupvars = c("Condition", "TrialType2", "Block"))
+Part4Agg$Block <- factor(Part4Agg$Block)
+
+#Plot our data
+ggplot(data=Part4Agg, aes(x=Block, y=RespCorr, group= Condition)) +
+  geom_line(aes(linetype = Condition, color = Condition), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Condition), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Block", y="Proportion of Correct Responses") +
+  scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TrialType2, scales="free", space= "free_x") +
+  theme_alan() +
+  ggtitle("Omnibus Comparison")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Omnibus Plot (All Conditions).png", plot = last_plot(), device = NULL, path = NULL,
+  width = 8, height = 4, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+
+
+```
+
+```{r RT Analysis for PART IV}
+afex.Part4.RT <- mixed(RT ~ Condition * TrialType2 + (1|ParticipantID),
+                         data=Part4Data,
+                         method = 'LRT')
+
+
+#Pretty up results and kick out as kable
+afex.Part4.RT$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Mixed Model Results - RTs - Part II", ) %>%
+              kable_styling(full_width= F)
+
+##Fixed Effects 
+summary(afex.Part4.RT)$coefficients  %>%
+  data.frame() %>%
+    tibble::rownames_to_column(var= "FixedEffect") %>% 
+    mutate(FixedEffect = recode_factor(FixedEffect, 
+                                       `Condition1` = "Iconic (Category)",
+                                        `Condition2` = "Counter-Iconic (Category)",
+                                       `Condition3` = "Conventional (Category)",
+                                       `Condition4` = "Iconic (Item)",
+                                       `Condition5` = "Counter-Iconic (Item)",
+                                       `Condition6` = "Conventional (Item)",
+                                       `Condition7` = "Arbitrary",
+                                       `TrialType21` = "Testing - Old",
+                                       `TrialType22` = "Testing - New",
+                                       `Condition1:TrialType21` = "Iconic (Category) x Testing - Old",
+                                       `Condition2:TrialType21` = "Counter-Iconic (Category) x Testing - Old",
+                                       `Condition3:TrialType21` = "Conventional (Category) x Testing - Old",
+                                       `Condition4:TrialType21` = "Iconic (Item) x Testing - Old",
+                                       `Condition5:TrialType21` = "Counter-Iconic (Item) x Testing - Old",
+                                       `Condition6:TrialType21` = "Conventional (Item) x Testing - Old",
+                                       `Condition7:TrialType21` = "Arbitrary x Testing - Old",
+                                       `Condition1:TrialType22` = "Iconic (Category) x Testing - New",
+                                       `Condition2:TrialType22` = "Counter-Iconic (Category) x Testing - New",
+                                       `Condition3:TrialType22` = "Conventional (Category) x Testing - New",
+                                       `Condition4:TrialType22` = "Iconic (Item) x Testing - New",
+                                       `Condition5:TrialType22` = "Counter-Iconic (Item) x Testing - New",
+                                       `Condition6:TrialType22` = "Conventional (Item) x Testing - New",
+                                       `Condition7:TrialType22` = "Arbitrary x Testing - New"
+                                       )) %>%
+      `colnames<-`(c("Fixed Effect", "Estimate", "SE", "df", "t", "p")) %>%
+        mutate_if(is.numeric, round, digits = 3) %>% 
+          mutate_at("p", funs(ifelse(.<0.001, "<0.001", .))) %>%
+            knitr::kable(caption = "Word Type Comparison- Fixed Effects Table - RTs - Part 2", ) %>%
+              kable_styling(full_width= F) %>%
+                pack_rows("Intercept", 1, 1) %>%
+                  pack_rows("Condition", 2, 8) %>%
+                    pack_rows("Trial Type", 9, 10)%>%
+                      pack_rows("Condition x Trial Type Interactions", 11, 24)
+
+
+Part4AggRT <- summarySE(Part4Data, measurevar = "RT", groupvars = c("Condition", "TrialType2", "Block"))
+
+Part4AggRT$Block <- factor(Part4AggRT$Block)
+
+#Plot our data
+ggplot(data=Part4AggRT, aes(x=Block, y=RT, group= Condition)) +
+  geom_line(aes(linetype = Condition, color = Condition), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RT - ci, ymax= RT + ci, color= Condition), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Block", y="Response Time") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TrialType2, scales="free", space= "free_x") +
+  theme_alan() +
+  ggtitle("Response Time Comparison - Part 4")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Response Time - Part 4.png", plot = last_plot(), device = NULL, path = NULL,
+  width = 8, height = 4, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+
+```
+
+We're going to try out a model of Iconicity x Systematicity with the data that we do have available, looking only at Training trials, and see if we can get something to converge
+
+
+```{r A model of iconicity x systematicity}
+
+
+conditions <- levels(Part4Data$Condition)
+
+Part4Data$LabelType <- mapvalues(Part4Data$Condition,
+                                 from = conditions,
+                                 to = c("None", rep("Category", 3), rep("Item", 4)))
+
+Part4Data$Systematicity <- mapvalues(Part4Data$Condition,
+                                 from = conditions,
+                                 to = c("None", rep("Non-Systematic", 3), rep("Systematic", 3), "Non-Systematic"))
+
+
+Part4Data$Iconicity <- mapvalues(Part4Data$Condition,
+                                 from = conditions,
+                                 to = c("None", "Iconic", "Counter-Iconic", "Conventional" , "Iconic", "Counter-Iconic", 
+                                        "Conventional", "Conventional"))
+
+
+
+afex.Part4.NewModel <- mixed(RT ~ LabelType + Systematicity + Iconicity + (1|ParticipantID),
+                         data=subset(Part4Data, TrialType2 == "Training"),
+                         method = 'LRT')
+
+
+#Pretty up results and kick out as kable
+afex.Part4.NewModel$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Part 4 - Analysis of Factors", ) %>%
+              kable_styling(full_width= F)
+
+
+
+Part4AggNew <- summarySE(Part4Data, measurevar = "RespCorr", groupvars = c("LabelType", "Systematicity", "Iconicity", "Block", "Condition"))
+Part4AggNew$Block <- factor(Part4AggNew$Block)
+
+#Plot our data
+ggplot(data=Part4AggNew, aes(x=Block, y=RespCorr, group= Condition)) +
+  geom_line(aes(linetype = Systematicity, color = Iconicity), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Iconicity), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Block", y="Proportion of Correct Responses") +
+  scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~LabelType, scales="free", space= "free_x") +
+  theme_alan() +
+  ggtitle("Omnibus Comparison")
+
+#GGSAVE
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
