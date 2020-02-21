@@ -1418,6 +1418,10 @@ ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Conventional Subcon
   width = 8, height = 4, units = c("in", "cm", "mm"),
   dpi = 600)
 
+
+#SUBCONDITION COUNTS
+count(Exp6Sub, Condition)/240
+
 ```
 
 We have the same condition here as with Subconditions for Condition 3. There is no effect during Training but for whatever reason during Testing Trials one of the mappings is **much** better than the other. It's very hard to conceptualize why this would be the case. It *may* suggest that one of the mappings is better than the others - this probably bears mentioning but given that we spend very little time actually discussing the effects on Testing Trials (because of the cliff of doom) I'm happy to collapse these
@@ -1470,6 +1474,9 @@ ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Arbitrary Condtions
   width = 8, height = 4, units = c("in", "cm", "mm"),
   dpi = 600)
 
+
+#COUNTS
+count(ArbSub, Condition)/240
 ```
 
 The case to collapse these ones is even more clear - there is well and truly no difference between them (and we don't expect one)
@@ -1929,7 +1936,19 @@ Part4Data$Iconicity <- mapvalues(Part4Data$Condition,
                                  to = c("None", "Iconic", "Counter-Iconic", "Conventional" , "Iconic", "Counter-Iconic", 
                                         "Conventional", "Conventional"))
 
+#Kick out a Crossings Table for the Curly-Brained in the Audience
+Crossings <- cbind.data.frame(conditions, 
+                              c("None", rep("Category", 3), rep("Item", 4)),
+                              c("None", rep("Non-Systematic", 3), rep("Systematic", 3), "Non-Systematic"),
+                              c("None", "Iconic", "Counter-Iconic", "Conventional" , "Iconic", "Counter-Iconic", 
+                                        "Conventional", "Conventional")
+                              )
+Crossings %>% 
+          `colnames<-`(c("Condition", "Label Type", "Systematicity", "Iconicity")) %>%
+            knitr::kable(caption = "Crossings of Factors", ) %>%
+              kable_styling(full_width= F)
 
+                           
 
 afex.Part4.NewModel <- mixed(RT ~ LabelType + Systematicity + Iconicity + (1|ParticipantID),
                          data=subset(Part4Data, TrialType2 == "Training"),
@@ -2037,6 +2056,653 @@ ExclusionsTable %>%
 ```
 
 
+So there is the exclusion table.
+
+What about the balancing of COnditions within the retracted samples
+
+```{r Condition Counts }
+
+exclusions2 <- c("All Data Collected",
+                "NA Response Value", 
+                "Negative RT Values", 
+                "High RT Values",
+                "Spammers",
+                "Cowards/Bravos",
+                "Final"
+                )
+
+participantnums2 <- c(nrow(CleanData)/240, #All Data
+               nrow(CleanData.RespCorr)/240, #NA Participant
+               nrow(CleanData.RTNegCorr)/240, #NEgative RT Values
+               nrow(CleanData2)/240, #High RT Values
+               nrow(CleanData5)/240, #Spammers
+               nrow(CleanData6)/240, #Cowards/Bravos
+               nrow(CleanData6)/240 #we don't lose participants for the last cut so we use the value from above
+               )
+
+
+
+
+AllDataCounts <- CleanData %>%
+   mutate(Condition2 = 
+      factor(Condition, levels = c (1,2,"3A", "3B", 4, 5, "6A", "6B", 7, 8, 9, 10),
+                        labels = c("Iconic (Category)", "Counter-Iconic (Category)", "Conventional (Category)", "Conventional (Category)",
+                                  "Iconic (Item)", "Counter-Iconic (Item)", "Conventional (Item)", "Conventional (Item)",
+                                  "Arbitrary", "Arbitrary", "Arbitrary",
+                                  "No Label"
+                                  ))) %>%
+        count(Condition2, sort = FALSE) 
+  
+
+NADataCounts <- CleanData.RespCorr %>%
+   mutate(Condition2 = 
+      factor(Condition, levels = c (1,2,"3A", "3B", 4, 5, "6A", "6B", 7, 8, 9, 10),
+                        labels = c("Iconic (Category)", "Counter-Iconic (Category)", "Conventional (Category)", "Conventional (Category)",
+                                  "Iconic (Item)", "Counter-Iconic (Item)", "Conventional (Item)", "Conventional (Item)",
+                                  "Arbitrary", "Arbitrary", "Arbitrary",
+                                  "No Label"
+                                  ))) %>%
+        count(Condition2, sort = FALSE) 
+
+
+NegRTDataCounts <- CleanData.RTNegCorr %>%
+   mutate(Condition2 = 
+      factor(Condition, levels = c (1,2,"3A", "3B", 4, 5, "6A", "6B", 7, 8, 9, 10),
+                        labels = c("Iconic (Category)", "Counter-Iconic (Category)", "Conventional (Category)", "Conventional (Category)",
+                                  "Iconic (Item)", "Counter-Iconic (Item)", "Conventional (Item)", "Conventional (Item)",
+                                  "Arbitrary", "Arbitrary", "Arbitrary",
+                                  "No Label"
+                                  ))) %>%
+        count(Condition2, sort = FALSE) 
+
+
+HighRTDataCounts <- CleanData2 %>%
+   mutate(Condition2 = 
+      factor(Condition, levels = c (1,2,"3A", "3B", 4, 5, "6A", "6B", 7, 8, 9, 10),
+                        labels = c("Iconic (Category)", "Counter-Iconic (Category)", "Conventional (Category)", "Conventional (Category)",
+                                  "Iconic (Item)", "Counter-Iconic (Item)", "Conventional (Item)", "Conventional (Item)",
+                                  "Arbitrary", "Arbitrary", "Arbitrary",
+                                  "No Label"
+                                  ))) %>%
+        count(Condition2, sort = FALSE) 
+
+SpammersDataCounts <- CleanData5 %>%
+   mutate(Condition2 = 
+      factor(Condition, levels = c (1,2,"3A", "3B", 4, 5, "6A", "6B", 7, 8, 9, 10),
+                        labels = c("Iconic (Category)", "Counter-Iconic (Category)", "Conventional (Category)", "Conventional (Category)",
+                                  "Iconic (Item)", "Counter-Iconic (Item)", "Conventional (Item)", "Conventional (Item)",
+                                  "Arbitrary", "Arbitrary", "Arbitrary",
+                                  "No Label"
+                                  ))) %>%
+        count(Condition2, sort = FALSE) 
+
+
+CowardsDataCounts <- CleanData6 %>%
+   mutate(Condition2 = 
+      factor(Condition, levels = c (1,2,"3A", "3B", 4, 5, "6A", "6B", 7, 8, 9, 10),
+                        labels = c("Iconic (Category)", "Counter-Iconic (Category)", "Conventional (Category)", "Conventional (Category)",
+                                  "Iconic (Item)", "Counter-Iconic (Item)", "Conventional (Item)", "Conventional (Item)",
+                                  "Arbitrary", "Arbitrary", "Arbitrary",
+                                  "No Label"
+                                  ))) %>%
+        count(Condition2, sort = FALSE) 
+
+
+ConditionCounts <- rbind.data.frame(AllDataCounts[1:8,]$n/240, NADataCounts$n/240, NegRTDataCounts$n/240,
+                        HighRTDataCounts$n/240, SpammersDataCounts$n/240, CowardsDataCounts$n/240, CowardsDataCounts$n/240) 
+
+ConditionCountsTable <- cbind.data.frame(exclusions2, participantnums2, ConditionCounts)
+
+ConditionCountsTable %>%  
+      `colnames<-`(c("Exclusion Criteria", "Total Participants", 
+                     "Iconic (Category)", "Counter-Iconic (Category)", "Conventional (Category)", 
+                                  "Iconic (Item)", "Counter-Iconic (Item)", "Conventional (Item)", 
+                                  "Arbitrary",
+                                  "No Label"
+                     ))%>% 
+      mutate_if(is.numeric, round, digits = 0) %>% 
+            knitr::kable(caption = "Exclusion Table - Participants per Condition at each Exclusion Level" ) %>%
+              kable_styling(full_width= F)
+
+
+```
+
+
+
+Quick check of subconditions by condition
+
+```{r SUbconditions x Condition}
+
+subcountstable <- data.frame(count(CleanData.Final, Condition, Subcondition))
+subcountstable$n <- subcountstable$n/240
+
+subcountstable %>% 
+      `colnames<-`(c("Condition", "Approach Shape", "n"))%>% 
+      mutate_if(is.numeric, round, digits = 0) %>% 
+            knitr::kable(caption = "Subcondition Balancing by Condition" ) %>%
+              kable_styling(full_width= F)
+
+
+
+```
+
+
+Looks good. Groovy. Moving on
+
+## Early Trial Analysis
+
+Lets take a look at the very earliest Training trials and see if we can recover any benefits for iconicity (this is where we'd expect to find them)
+
+```{r Early Trial Analysis}
+
+#FIRST 4 TRIALS
+OmnibusEarly4 <- subset(Part4Data, TrialType == "Training" & TrialNum < 5)
+
+OmnibusEarly4Agg <- summarySE(OmnibusEarly4, measurevar = "RespCorr", groupvars = c("Condition"))
+
+#Plot our data
+ggplot(data = OmnibusEarly4Agg, aes(x= Condition, y= RespCorr)) +
+  geom_bar(stat = "summary", fun.y = "mean", aes(fill = Condition), position = position_dodge(width=0.9)) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Condition), width= 0.2, size = 1, position=pd)+
+  #scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  #scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Condition", y="Proportion of Correct Responses") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  theme_alan() +
+  ggtitle("Early Trial Analysis - First 4 Trials by Condition")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Early Trial Analysis by Condition.png", plot = last_plot(), device = NULL, path = NULL,
+  width = 12, height = 6, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+
+#FIRST 4 TRIALS BY ICONICITY (COLLAPSED)
+OmnibusEarly4Agg2 <- summarySE(OmnibusEarly4, measurevar = "RespCorr", groupvars = c("Iconicity"))
+
+#Plot our data
+ggplot(data = OmnibusEarly4Agg2, aes(x= Iconicity, y= RespCorr)) +
+  geom_bar(stat = "summary", fun.y = "mean", aes(fill = Iconicity), position = position_dodge(width=0.9)) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Iconicity), width= 0.2, size = 1, position=pd)+
+  #scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  #scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Iconicity", y="Proportion of Correct Responses") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  theme_alan() +
+  ggtitle("Early Trial Analysis - First 4 Trials by Iconicity")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Early Trial Analysis by Iconicity (4 Trials) .png ", plot = last_plot(), device = NULL, path = NULL,
+  width = 12, height = 6, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+
+
+afex.Iconicity.Early <- mixed(RespCorr ~ Iconicity + (1|ParticipantID),
+                         data=OmnibusEarly4, family = binomial,
+                         method = 'LRT')
+
+
+#Pretty up results and kick out as kable
+afex.Iconicity.Early$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Early Trials by Iconicity - ANOVA tables", ) %>%
+              kable_styling(full_width= F)
+
+
+summary(afex.Iconicity.Early)$coefficients  %>%
+  data.frame() %>%
+    tibble::rownames_to_column(var= "Iconicity") %>% 
+    mutate(Iconicity = recode_factor(Iconicity, 
+                                       `Iconicity1` = "Iconic)",
+                                        `Iconicity2` = "Counter-Iconic",
+                                       `Iconicity3` = "Conventional",
+                                                                           )) %>%
+      `colnames<-`(c("Iconicity", "Estimate", "SE", "z", "p")) %>%
+        mutate_if(is.numeric, round, digits = 3) %>% 
+          mutate_at("p", funs(ifelse(.<0.001, "<0.001", .))) %>%
+            knitr::kable(caption = "Post Hoc Comparisons of Levels of Iconicity in Earliest Trials", ) %>%
+              kable_styling(full_width= F) 
+
+
+```
+
+
+There is always a fine balance here - we want to avoid "p hacking", but there is a tension between the number of trials we'd expect to see an early advantage on, and having an actual sufficient amount of data to make a statistical comparison
+
+For posterity, we'll run this comparison again using just the first 2 trials (highest chance, lowest data) and 8 trials (lower chance, but more data)
+
+
+```{r Early Trials Analysis II}
+#First 2 Trials
+OmnibusEarly2 <- subset(Part4Data, TrialType == "Training" & TrialNum < 3)
+
+OmnibusEarly2Agg2 <- summarySE(OmnibusEarly2, measurevar = "RespCorr", groupvars = c("Iconicity"))
+
+#Plot our data
+ggplot(data = OmnibusEarly2Agg2, aes(x= Iconicity, y= RespCorr)) +
+  geom_bar(stat = "summary", fun.y = "mean", aes(fill = Iconicity), position = position_dodge(width=0.9)) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Iconicity), width= 0.2, size = 1, position=pd)+
+  #scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  #scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Iconicity", y="Proportion of Correct Responses") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  theme_alan() +
+  ggtitle("Early Trial Analysis - First 2 Trials by Iconicity")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Early Trial Analysis by Iconicity (2 Trials).png", plot = last_plot(), device = NULL, path = NULL,
+  width = 12, height = 6, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+
+
+afex.Iconicity.Early2 <- mixed(RespCorr ~ Iconicity + (1|ParticipantID),
+                         data=OmnibusEarly2, family = binomial,
+                         method = 'LRT')
+
+
+#Pretty up results and kick out as kable
+afex.Iconicity.Early2$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Early Trials by Iconicity (2)- ANOVA tables", ) %>%
+              kable_styling(full_width= F)
+
+```
+
+Nothing there. HOw about the first 8
+
+```{r Early Trials Analysis III}
+#First 8 Trials
+OmnibusEarly8 <- subset(Part4Data, TrialType == "Training" & TrialNum < 9)
+
+OmnibusEarly8Agg2 <- summarySE(OmnibusEarly8, measurevar = "RespCorr", groupvars = c("Iconicity"))
+
+#Plot our data
+ggplot(data = OmnibusEarly8Agg2, aes(x= Iconicity, y= RespCorr)) +
+  geom_bar(stat = "summary", fun.y = "mean", aes(fill = Iconicity), position = position_dodge(width=0.9)) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Iconicity), width= 0.2, size = 1, position=pd)+
+  #scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  #scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Iconicity", y="Proportion of Correct Responses") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  theme_alan() +
+  ggtitle("Early Trial Analysis - First 8 Trials by Iconicity")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Early Trial Analysis by Iconicity (8 Trials).png", plot = last_plot(), device = NULL, path = NULL,
+  width = 12, height = 6, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+
+
+afex.Iconicity.Early8 <- mixed(RespCorr ~ Iconicity + (1|ParticipantID),
+                         data=OmnibusEarly8, family = binomial,
+                         method = 'LRT')
+
+
+#Pretty up results and kick out as kable
+afex.Iconicity.Early8$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Early Trials by Iconicity (8)- ANOVA tables", ) %>%
+              kable_styling(full_width= F)
+
+```
+
+
+It looks like we start showing an effect here, but I think it's just the main effect of No Label being shit in the Training trials coming up. There isn't much of a reason to look further into it, other than exploring for the potential intereference effect for Counter-Iconic Trials (overall)
+
+Recall that in both my thesis (Nielsen, 2016) and some of Vanja's earlier work there is an interference effect for Counter-Iconic languages. They are learned just as well as Iconic ones, but participants are much slower on them, as if they are intentionally and consciously being forced to reverse their expectations
+
+So we'll quickly take a look at that
+
+```{r Exploration of Interference Effect}
+
+Interference.RT <- summarySE(Part4Data, measurevar = "RT", groupvars = c("Iconicity"))
+
+#Plot our data
+ggplot(data = Interference.RT, aes(x= Iconicity, y= RT)) +
+  geom_bar(stat = "summary", fun.y = "mean", aes(fill = Iconicity), position = position_dodge(width=0.9)) +
+  geom_errorbar(aes(ymin= RT - ci, ymax= RT + ci, color= Iconicity), width= 0.2, size = 1, position=pd)+
+  #scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  #scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Iconicity", y="Response Time") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  theme_alan() +
+  ggtitle("Response Time Interference Effect")
+
+```
+
+Alan Nielsen, the Patron Saint of Null Results, Strikes again!
+Lets look quickly in early trials (and then cry)
+
+
+```{r Interference Effects - Training Trials}
+Interference.RT2 <- summarySE(subset(Part4Data, TrialType == "Training"), measurevar = "RT", groupvars = c("Iconicity"))
+
+#Plot our data
+ggplot(data = Interference.RT2, aes(x= Iconicity, y= RT)) +
+  geom_bar(stat = "summary", fun.y = "mean", aes(fill = Iconicity), position = position_dodge(width=0.9)) +
+  geom_errorbar(aes(ymin= RT - ci, ymax= RT + ci, color= Iconicity), width= 0.2, size = 1, position=pd)+
+  #scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  #scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Iconicity", y="Response Time") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  theme_alan() +
+  ggtitle("Response Time Interference Effect (Training Only)")
+
+
+#And just for shits and giggles, only in the first block
+
+Interference.RT3 <- summarySE(subset(Part4Data, TrialType == "Training" & Block == 1), measurevar = "RT", groupvars = c("Iconicity"))
+
+#Plot our data
+ggplot(data = Interference.RT3, aes(x= Iconicity, y= RT)) +
+  geom_bar(stat = "summary", fun.y = "mean", aes(fill = Iconicity), position = position_dodge(width=0.9)) +
+  geom_errorbar(aes(ymin= RT - ci, ymax= RT + ci, color= Iconicity), width= 0.2, size = 1, position=pd)+
+  #scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  #scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Iconicity", y="Response Time") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  theme_alan() +
+  ggtitle("Response Time Interference Effect (First Block Only)")
+
+
+```
+
+
+There are a few more things we can do, but before that we're going to look at collapsing our data further so we have a better chance of pulling out some of the interesting effects
+
+## Collapsing within Clusters for Analysis
+
+We know that when we look at the omnibus results we want to be able to make some pretty general points - hence we collapse subconditions and all arbitrary conditions after looking at them
+
+However, we leave our clusters (i.e. All Category labels) together, despite the fact that we know from our statistical tests that they aren't any different from each other
+
+So lets collapse them for some nice graphs (and to simplify some of the below fiddly analyses)
+
+```{r Parsimonious graphs and stats}
+
+
+CleanData.Parsimonious <- CleanData.Final
+CleanData.Parsimonious$Condition <- factor(CleanData.Parsimonious$Condition)
+
+CleanData.Parsimonious$Condition2 <- factor(mapvalues(CleanData.Parsimonious$Condition,
+                                 from = as.vector(levels(CleanData.Parsimonious$Condition)),
+                                 to = c("Category", "No Label", rep("Category",3), rep("Item", 4), rep("Arbitrary", 3))
+                                 ))
+
+
+```
+
+
+## Testing Stimuli
+
+In this study, as in Lupyan et al. (2007), we have two kinds of stimuli presented in Testing Trials - either images that were seen previously, or images of the same type, but unseen (as a test of generalisation). 
+
+However, nowhere in Lupyan et al (2007) is the difference between these types of trials reported (which suggests to me that there we no differences)
+
+Currently we show this split in all of our graphs, but why we do so isn't particularly well motivated. It would certianly be easier for us to show only one Testing set in graphs and also to collapse this for statistical analyses, we lets take a look
+
+```{r Justifying Testing Type Collapse}
+
+TypeCollapse <- subset(Part4Data, TrialType2 != "Training")
+TypeCollapse$TrialType2 <- factor(TypeCollapse$TrialType2)
+afex.TypeCollapse <- mixed(RespCorr ~ Condition * TrialType2 + (1|ParticipantID),
+                         data=TypeCollapse,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                         method = 'LRT')
+
+#Pretty up results and kick out as kable
+afex.TypeCollapse$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Mixed Model Results - Part 2", ) %>%
+              kable_styling(full_width= F)
+
+
+
+TypeCollapseAgg <- summarySE(TypeCollapse, measurevar = "RespCorr", groupvars = c("Condition", "TrialType2", "Block"))
+
+#Plot our data
+ggplot(data=TypeCollapseAgg, aes(x=Block, y=RespCorr, group= Condition)) +
+  geom_line(aes(linetype = Condition, color = Condition), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Condition), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Block", y="Proportion of Correct Responses") +
+  scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TrialType2, scales="free", space= "free_x") +
+  theme_alan() +
+  ggtitle("Comparison of Testing Types")
+
+
+
+#INTERACTIONS
+TypeCollapse.vPairs <- data.frame(pairs(emmeans(afex.TypeCollapse, 
+                    ~Condition * TrialType2,
+                    adjust = "none")))
+
+#Comparisons 
+TypeCollapse.EMMeansTable <-   rbind(TypeCollapse.vPairs[8,], #No Label
+                                     TypeCollapse.vPairs[23,], #Icxonic (Category)
+                                     TypeCollapse.vPairs[37,], #Counter-Iconic (Category)
+                                     TypeCollapse.vPairs[50,], #Conventional (Category)
+                                     TypeCollapse.vPairs[62,], #Iconic (Item)
+                                     TypeCollapse.vPairs[73,], #Counter-Iconic (Item)
+                                     TypeCollapse.vPairs[83,], #Conventional (Item)
+                                     TypeCollapse.vPairs[92,] #Arbitrary
+)
+
+
+
+#COMPARISONS OF CONDITIONS WITHIN TRAINING TRIALS
+TypeCollapse.Table <- cbind.data.frame(
+  levels(TypeCollapse$Condition), #Conditions
+  as.vector(tapply(subset(TypeCollapse, TrialType2 == "Testing-Old")$RespCorr, 
+                   subset(TypeCollapse, TrialType2 == "Testing-Old")$Condition, mean)), #oldmeans
+  as.vector(tapply(subset(TypeCollapse, TrialType2 == "Testing-New")$RespCorr, 
+                   subset(TypeCollapse, TrialType2 == "Testing-New")$Condition, mean)),  #NewMeans
+  TypeCollapse.EMMeansTable
+)
+
+TypeCollapse.Table %>% 
+    `colnames<-`(c("Condition", "Mean (Old Items)", "Mean (New Items)", "Contrast", "Estimate", "SE", "df", "z Ratio", "p")) %>%
+    mutate_if(is.numeric, round, 3) %>%
+    mutate_at("p", funs(ifelse(.<0.001, "<0.001", .))) %>%
+    subset(select = -c(Contrast, df)) %>%
+    subset(select = c(Condition, `Mean (Old Items)`, `Mean (New Items)`, p, Estimate, SE, `z Ratio`))%>%
+          knitr::kable(caption = 'Post Hoc Comparisons of Condition between Testing Types', "html") %>%
+            kable_styling(full_width = F)  
+
+
+
+```
+
+
+
+Hip hip to the hooray - this is exactly what we expected- even though there is a significant main effect of Trial TYpe and a significant Interaction, this post hoc comparison (which we are licensed to make) tells us the only really thing we are interested in: every condition other than the No Label condition has equal performance on both kinds of items, but in the No Label condition performance in the testing trials is better on Old (familiar) items
+
+
+## Subconditions
+
+OUr experimental participants are split into two subconditions giving informattion about which kind of "alien microbes" they should approach - whether they should approach Curvy ones or Jagged ones
+
+We suggested in our OSF that we expect it will be easier to learn to approach Curvy aliens, regardless of labelling condition, but would ideally hope that this wasn't a very large effect. Nonetheless, it is one that we should look at
+
+To do this, we're going to use the collapsed "parsimonious" data from above
+
+```{r SubCOndition Exploration}
+CleanData.Parsimonious$Subcondition <- factor(CleanData.Parsimonious$Subcondition)
+
+afex.Parsim.SubCond <- mixed(RespCorr ~ Condition2 * Subcondition + (1|ParticipantID),
+                         data=CleanData.Parsimonious,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                         method = 'LRT')
+
+#Pretty up results and kick out as kable
+afex.Parsim.SubCond$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Subcondition Analysis", ) %>%
+              kable_styling(full_width= F)
+
+
+SubCondition.Parsim.Agg <- summarySE(CleanData.Parsimonious, measurevar = "RespCorr", groupvars = c("Condition2", "Subcondition"))
+
+#Plot our data
+ggplot(data = SubCondition.Parsim.Agg, aes(x= Subcondition, y= RespCorr)) +
+  geom_bar(stat = "summary", fun.y = "mean", aes(fill = Subcondition), position = position_dodge(width=0.9)) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Subcondition), width= 0.2, size = 1, position=pd)+
+  #scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  #scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Iconicity", y="Response Time") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  theme_alan() +
+  ggtitle("Comparison of Subconditions within Parsimonious Conditions") +
+    facet_grid(~Condition2)
+
+
+```
+
+
+So we can see no interaction of effects here, just a benefit in accuracy when the rules for Approach are that the explorers should approach Curvy Aliens
+
+Is this something that persists across the entire experiment, or is it an artifact of early trials (i.e. is this swamping the normal early trial benefit that we'd have seen in other studies for iconicity). Lets take a look just within the first block of training
+
+```{r Early Approach}
+
+CleanData.Parsimonious.Early <- subset(CleanData.Parsimonious, TrialType == "Training" & Block == 1)
+
+afex.Parsim.Early.SubCond <- mixed(RespCorr ~ Condition2 * Subcondition + (1|ParticipantID),
+                         data=CleanData.Parsimonious.Early,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                         method = 'LRT')
+
+#Pretty up results and kick out as kable
+afex.Parsim.Early.SubCond$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Subcondition Analysis (First Block)", ) %>%
+              kable_styling(full_width= F)
+
+
+SubCondition.Parsim.Early.Agg <- summarySE(CleanData.Parsimonious.Early, measurevar = "RespCorr", groupvars = c("Condition2", "Subcondition"))
+
+#Plot our data
+ggplot(data = SubCondition.Parsim.Early.Agg, aes(x= Subcondition, y= RespCorr)) +
+  geom_bar(stat = "summary", fun.y = "mean", aes(fill = Subcondition), position = position_dodge(width=0.9)) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Subcondition), width= 0.2, size = 1, position=pd)+
+  #scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  #scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Iconicity", y="Response Time") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  theme_alan() +
+  ggtitle("Comparison of Subconditions within Parsimonious Conditions (First Block Only)") +
+    facet_grid(~Condition2)
+
+
+
+```
+
+Not a *ton* going on here, but definitely some suggestion that for the No Label condition participants might start with a large bias towards approaching Curvy Aliens and then have this bias go away over time (differences in the whole Experiment are much smaller/might not exist in that condition). This could be explored further later if we want to, but certainly isn't worth it at this juncture
+
+But speaking of useless things not worth the time to do them - lets make an extra extra prediction - everyone will do better on Testing-New trials when this rule is congruent (because they will have nothing to fall back on)
+
+```{r Subconditions and New Item Testing Trials}
+
+CleanData.Parsimonious.NewTest <- subset(CleanData.Parsimonious, TrialType2 == "Testing-New" & Block == 1)
+
+afex.Parsim.NewTest.SubCond <- mixed(RespCorr ~ Condition2 * Subcondition + (1|ParticipantID),
+                         data=CleanData.Parsimonious.NewTest,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                         method = 'LRT')
+
+#Pretty up results and kick out as kable
+afex.Parsim.NewTest.SubCond$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Subcondition Analysis (First Block of New Test Items)", ) %>%
+              kable_styling(full_width= F)
+
+
+CleanData.Parsimonious.NewTest.Agg <- summarySE(CleanData.Parsimonious.NewTest, measurevar = "RespCorr", groupvars = c("Condition2", "Subcondition"))
+
+#Plot our data
+ggplot(data = CleanData.Parsimonious.NewTest.Agg, aes(x= Subcondition, y= RespCorr)) +
+  geom_bar(stat = "summary", fun.y = "mean", aes(fill = Subcondition), position = position_dodge(width=0.9)) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Subcondition), width= 0.2, size = 1, position=pd)+
+  #scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  #scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Iconicity", y="Response Time") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  theme_alan() +
+  ggtitle("Comparison of Subconditions within Parsimonious Conditions (First Block of Testing-New)") +
+    facet_grid(~Condition2)
+
+
+
+
+```
+
+
+Sometimes it feels good to be wrong #patronsaintofnullresults
+
+
+## LEARNING RATES
+
+
+
+
+## STUDY LENGTH JUSTIFICATION
+
+```{r Study Length Exploration}
+
+#Find the average length of the study (Trials) per participant
+MeanTrial <- mean(CleanData.Final$RT) #Mean Trial Length
+TotalTrials <- MeanTrial*240/1000 #Total Length in Seconds
+TotalTrialsMin <- TotalTrials/60
+
+TestLength <- cbind.data.frame(c("Mean Trial Length", "Total Length (s)", "Total Length (M)"), c(MeanTrial, TotalTrials, TotalTrialsMin) )
+
+# 6 Training Blocks
+
+
+
+
+
+TestLength %>% 
+           `colnames<-`(c("", "Current")) %>%
+            knitr::kable(caption = "Experiment Length", ) %>%
+              kable_styling(full_width= F)
 
 
 
@@ -2044,23 +2710,7 @@ ExclusionsTable %>%
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+```
 
 
 
