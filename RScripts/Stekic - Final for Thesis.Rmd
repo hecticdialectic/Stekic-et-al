@@ -709,6 +709,14 @@ ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Conventional Subcon
   width = 8, height = 4, units = c("in", "cm", "mm"),
   dpi = 600)
 
+
+#Participants per subcondition of condition 3
+SubCounts3 <- data.frame(count(Exp3Sub, Condition))
+SubCounts3$n <- SubCounts3$n/240
+SubCounts3 %>% 
+            knitr::kable(caption = "Number of Participants in Subconditions of Experiment 3", ) %>%
+              kable_styling(full_width= F)
+
 ```
 
 So above we see no significant effect of Condition when looking at only subconditions 3A and 3B, and no significant interaction of Condition x Trial type. Thus, as we expected, we are justified to collapse these subconditions for further analyses
@@ -1420,7 +1428,11 @@ ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Conventional Subcon
 
 
 #SUBCONDITION COUNTS
-count(Exp6Sub, Condition)/240
+SubCounts6 <- data.frame(count(Exp6Sub, Condition))
+SubCounts6$n <- SubCounts6$n/240
+SubCounts6 %>% 
+            knitr::kable(caption = "Number of Participants in Subconditions of Experiment 6", ) %>%
+              kable_styling(full_width= F)
 
 ```
 
@@ -1476,7 +1488,11 @@ ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Arbitrary Condtions
 
 
 #COUNTS
-count(ArbSub, Condition)/240
+SubCountsArb <- data.frame(count(ArbSub, Condition))
+SubCountsArb$n <- SubCountsArb$n/240
+SubCountsArb %>% 
+            knitr::kable(caption = "Number of Participants in Subconditions of Experiment 6", ) %>%
+              kable_styling(full_width= F)
 ```
 
 The case to collapse these ones is even more clear - there is well and truly no difference between them (and we don't expect one)
@@ -1750,7 +1766,8 @@ afex.Part3.Block$anova_table
 
 ```{r I'ma converge this whole house}
 
-Part4Data <- rbind(Part2Data, Part3Data)
+#CHANGED THIS SO WE DON"T HAVE NO LABEL DATA READ IN TWICE
+Part4Data <- rbind(subset(Part2Data, Condition != "No Label"), Part3Data)
 
 afex.Part4 <- mixed(RespCorr ~ Condition * TrialType2 + (1|ParticipantID),
                          data=Part4Data,
@@ -2677,28 +2694,165 @@ ggplot(data = CleanData.Parsimonious.NewTest.Agg, aes(x= Subcondition, y= RespCo
 Sometimes it feels good to be wrong #patronsaintofnullresults
 
 
-## LEARNING RATES
+## COMPARISON OF BLOCKS 1, 6 , 9 in TRAINING TRIALS
+
+```{r Learning Rates and Comparison of Trials}
+Blocks.Data.Training <- subset(Part4Data, TrialType2 == "Training")
+Blocks.Data.Training <- subset(Blocks.Data.Training, Block == 1|Block == 6|Block == 9)
+Blocks.Data.Training$Block <- as.factor(Blocks.Data.Training$Block)
+
+afex.Blocks <- mixed(RespCorr ~ Condition * Block + (1|ParticipantID),
+                         data=Blocks.Data.Training,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                         method = 'LRT')
+
+#Pretty up results and kick out as kable
+afex.Blocks$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Mixed Model Results - Interaction of Condition x Block (Training Trials)", ) %>%
+              kable_styling(full_width= F)
+
+# POST HOC COMPARISONS (FOR TABLES)
+
+BlocksTraining.vPairs <- data.frame(pairs(emmeans(afex.Blocks, 
+                    ~Condition * Block,
+                    adjust = "none")))
+
+
+BlocksTraining.EMMeansTable.1v6 <-   rbind(BlocksTraining.vPairs[8,], #No Label
+                                     BlocksTraining.vPairs[31,], #Icxonic (Category)
+                                     BlocksTraining.vPairs[53,], #Counter-Iconic (Category)
+                                     BlocksTraining.vPairs[74,], #Conventional (Category)
+                                     BlocksTraining.vPairs[94,], #Iconic (Item)
+                                     BlocksTraining.vPairs[113,], #Counter-Iconic (Item)
+                                     BlocksTraining.vPairs[131,], #Conventional (Item)
+                                     BlocksTraining.vPairs[148,] #Arbitrary
+)
+
+BlocksTraining.EMMeansTable.1v9 <-   rbind(BlocksTraining.vPairs[16,], #No Label
+                                     BlocksTraining.vPairs[39,], #Icxonic (Category)
+                                     BlocksTraining.vPairs[61,], #Counter-Iconic (Category)
+                                     BlocksTraining.vPairs[82,], #Conventional (Category)
+                                     BlocksTraining.vPairs[102,], #Iconic (Item)
+                                     BlocksTraining.vPairs[121,], #Counter-Iconic (Item)
+                                     BlocksTraining.vPairs[139,], #Conventional (Item)
+                                     BlocksTraining.vPairs[156,] #Arbitrary
+)
+
+BlocksTraining.EMMeansTable.6v9 <-   rbind(BlocksTraining.vPairs[164,], #No Label
+                                     BlocksTraining.vPairs[179,], #Icxonic (Category)
+                                     BlocksTraining.vPairs[193,], #Counter-Iconic (Category)
+                                     BlocksTraining.vPairs[206,], #Conventional (Category)
+                                     BlocksTraining.vPairs[218,], #Iconic (Item)
+                                     BlocksTraining.vPairs[229,], #Counter-Iconic (Item)
+                                     BlocksTraining.vPairs[239,], #Conventional (Item)
+                                     BlocksTraining.vPairs[248,] #Arbitrary
+)
+
+#Comparisons of Blocks 1, 6, and 9 Within Conditions
+BlocksTraining.Table <- cbind.data.frame(
+  levels(Blocks.Data.Training$Condition), #Conditions
+  as.vector(tapply(subset(Blocks.Data.Training, Block == "1")$RespCorr, 
+                   subset(Blocks.Data.Training, Block == "1")$Condition, mean)), #Block 1 Means
+  
+    as.vector(tapply(subset(Blocks.Data.Training, Block == "6")$RespCorr, 
+                   subset(Blocks.Data.Training, Block == "6")$Condition, mean)), #Block 6 Means
+  
+    as.vector(tapply(subset(Blocks.Data.Training, Block == "9")$RespCorr, 
+                   subset(Blocks.Data.Training, Block == "9")$Condition, mean)), #Block 9 Means
+  
+  BlocksTraining.EMMeansTable.1v6, #1 vs 6 comparisons
+  BlocksTraining.EMMeansTable.1v9,# 1 vs 9 comparisons
+  BlocksTraining.EMMeansTable.6v9 #6 vs 9 comparisons
+  )
+
+BlocksTraining.Table %>% 
+    `colnames<-`(c("Condition", "Block 1", "Block 2", "Block 3", 
+                   "Contrast (1v6)", "Estimate (1v6)", "SE (1v6)", "df (1v6)", "z Ratio (1v6)", "p (1v6)",
+                   "Contrast (1v9)", "Estimate (1v9)", "SE (1v9)", "df (1v9)", "z Ratio (1v9)", "p (1v9)",
+                   "Contrast (6v9)", "Estimate (6v9)", "SE (6v9)", "df (6v9)", "z Ratio (6v9)", "p (6v9)"
+                   )) %>%
+    mutate_if(is.numeric, round, 3) %>%
+    mutate_at(.vars = vars("p (1v6)", "p (1v9)", "p (6v9)"), funs(ifelse(.<0.001, "<0.001", .))) %>%
+    subset(select = -c(`Contrast (1v6)`, `df (1v6)`, `Estimate (1v6)`,
+                       `Contrast (1v9)`, `df (1v9)`, `Estimate (1v9)`,
+                       `Contrast (6v9)`, `df (6v9)`, `Estimate (6v9)`
+                       )) %>%
+          knitr::kable(caption = 'Post Hoc Comparisons of Condition between Blocks 1, 6, and 9', "html") %>%
+            kable_styling(full_width = F)  %>%
+                add_header_above(c("", "Means by Block" = 3, 
+                               "Block 1 vs Block 6" = 3,
+                                "Block 1 vs Block 9" = 3,
+                               "Block 6 vs Block 9" = 3),
+                               font_size = 12)
+
+
+##COLLAPSE AND PLOT
+Blocks.Data.TrainingAgg <- summarySE(Blocks.Data.Training, measurevar = "RespCorr", groupvars = c("Condition", "Block"))
+
+#Plot our data
+ggplot(data=Blocks.Data.TrainingAgg, aes(x=Block, y=RespCorr, group= Condition)) +
+  geom_line(aes(linetype = Condition, color = Condition), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Condition), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Block", y="Proportion of Correct Responses") +
+  scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  theme_alan() +
+  ggtitle("Comparison of Blocks 1, 6, and 9 by Condition")
+
+```
+
+That's pretty much what we expected/wanted. Everyone gets better between Blocks 1 and 6, only 2 conditions (counter iconic (item) and conventional (item) continue to get better between block 6 and 9)
 
 
 
+## Comparisons of Blocks within Testing Trials
 
+```{r Comparison of blocks within testing trials}
+
+Blocks.Data.Testing <- subset(Part4Data, TrialType == "Testing")
+Blocks.Data.Testing$Block <- as.factor(Blocks.Data.Testing$Block)
+
+afex.Blocks.Testing <- mixed(RespCorr ~ Condition * Block + (1|ParticipantID),
+                         data=Blocks.Data.Testing,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                         method = 'LRT')
+
+#Pretty up results and kick out as kable
+afex.Blocks.Testing$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Mixed Model Results - Interaction of Condition x Block (Testing Trials)", ) %>%
+              kable_styling(full_width= F)
+
+```
+
+Excellent - there is no difference between Testing BLocks by Conditino, so we are justified in cutting down on the number of testing blocks without any real argument
+
+              
+              
 ## STUDY LENGTH JUSTIFICATION
 
 ```{r Study Length Exploration}
 
 #Find the average length of the study (Trials) per participant
-MeanTrial <- mean(CleanData.Final$RT) #Mean Trial Length
+MeanTrial <- mean(subset(CleanData.Final, Condition == "4"|Condition == "5"|Condition == "6A"|Condition == "6B")$RT) #Mean Trial Length
 TotalTrials <- MeanTrial*240/1000 #Total Length in Seconds
 TotalTrialsMin <- TotalTrials/60
 
 TestLength <- cbind.data.frame(c("Mean Trial Length", "Total Length (s)", "Total Length (M)"), c(MeanTrial, TotalTrials, TotalTrialsMin) )
 
-# 6 Training Blocks
-
-
-
-
-
+# Current Length
 TestLength %>% 
            `colnames<-`(c("", "Current")) %>%
             knitr::kable(caption = "Experiment Length", ) %>%
@@ -2706,8 +2860,28 @@ TestLength %>%
 
 
 
+#Tables of Options
 
+OptionsTable <- cbind.data.frame(c("Trials","Length (s)", "Length (M)"),
+                                 c(240, MeanTrial/1000*240, MeanTrial/1000*240/60), #Current Experiment
+                                 c(192, MeanTrial/1000*192, MeanTrial/1000*192/60), #Same Number of test stims (4 Blocks)
+                                 c(168, MeanTrial/1000*168, MeanTrial/1000*168/60), #Same Number of test stims (3 Blocks)
+                                 c(144, MeanTrial/1000*144, MeanTrial/1000*144/60), #Same Number of test stims (2 Blocks)
+                                 c(160, MeanTrial/1000*160, MeanTrial/1000*160/60), #Less test stims (4 Blocks)
+                                 c(144, MeanTrial/1000*144, MeanTrial/1000*144/60), #Less test stims (3 Blocks)
+                                 c(128, MeanTrial/1000*128, MeanTrial/1000*128/60) #Less test stims (2 Blocks)
+  )
 
+OptionsTable %>% 
+           `colnames<-`(c(" ", "Pilot", 
+                          "6/4", "6/3", "6/2",
+                          "6/4 (S)", "6/3 (S)", "6/2 (S)")) %>%
+        mutate_if(is.numeric, round, digits = 0) %>%
+            knitr::kable(caption = "Potential Experiment Lengths (Not Including Instructions)", ) %>%
+              kable_styling(full_width= F) %>%
+                add_header_above(c(" " = 2, "6 Training Blocks + Normal Testing Blocks" = 3, 
+                               "6 Training Blocks + Short Testing Blocks" = 3),
+                               font_size = 12)
 
 
 ```
