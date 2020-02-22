@@ -1,0 +1,2404 @@
+---
+title: "Stekic et al. (2019)- Data Analysis - Balkanized"
+output:   
+  html_document:
+    keep_md: true
+    theme: journal
+    toc: true
+    toc_depth: 4
+    toc_float: 
+      collapsed: false
+    code_folding: hide
+---
+
+IN THIS VERSION I HAVE ATTEMPTED TO BALKANISE THE GRAPHS AND TABLES. I HAVE DONE THIS BY USING FIND AND REPLACE ON THE MOST IMPORTANT TERMS. THUS MOST THINGS SHOULD BE CHANGED AND WORKING PROPERLY, BUT YOU'LL NEED TO GO THROUGH AND DO ACTUAL NAMINGS OF GRAPHS AND TABLES IN SERBIAN, AND LOOK FOR ANY INFELICITIES AND ERRORS
+
+#### Loading Libaries
+```{r Loading Libraries, include = FALSE}
+library(lme4)
+library(plyr)
+library(ggplot2)
+library(afex)
+library(emmeans)
+library(ggthemes)
+library(tidyverse)
+library(kableExtra)
+library(Hmisc)
+library(binom)
+library(Rmisc)
+library(magick)
+library(webshot)
+library(magrittr)
+library(multcomp)
+```
+
+```{r Loading my GGTheme, include = FALSE}
+theme_alan <- function(base_size = 12 , base_family = "")
+{
+  half_line <- base_size/2
+  colors <- ggthemes_data$few
+  gray <- colors$medium["gray"]
+  black <- colors$dark["black"]
+  
+  theme(
+    line = element_line(colour = "black", size = 0.5, linetype = 1, lineend = "butt"),
+    rect = element_rect(fill = "white", 
+                        colour = "black", size = 0.5, linetype = 1),
+    text = element_text(family = base_family, face = "plain", colour = "black", 
+                        size = base_size, lineheight = 0.9, hjust = 0.5, vjust = 0.5,
+                        angle = 0, margin = margin(), debug = FALSE),
+    
+    axis.line = element_blank(),
+    axis.line.x = NULL,
+    axis.line.y = NULL, 
+    axis.text = element_text(size = rel(0.8), colour = "grey30"),
+    axis.text.x = element_text(margin = margin(t = 0.8 * half_line/2), vjust = 1),
+    axis.text.x.top = element_text(margin = margin(b = 0.8 * half_line/2), vjust = 0),
+    axis.text.y = element_text(margin = margin(r = 0.8 * half_line/2), hjust = 1),
+    axis.text.y.right = element_text(margin = margin(l = 0.8 * half_line/2), hjust = 0), 
+    axis.ticks = element_line(colour = "grey20"), 
+    axis.ticks.length = unit(half_line/2, "pt"),
+    axis.title.x = element_text(margin = margin(t = half_line), vjust = 1),
+    axis.title.x.top = element_text(margin = margin(b = half_line), vjust = 0),
+    axis.title.y = element_text(angle = 90, margin = margin(r = half_line), vjust = 1),
+    axis.title.y.right = element_text(angle = -90, margin = margin(l = half_line), vjust = 0),
+    
+    legend.background = element_rect(colour = NA),
+    legend.spacing = unit(0.4, "cm"), 
+    legend.spacing.x = NULL, 
+    legend.spacing.y = NULL,
+    legend.margin = margin(0.2, 0.2, 0.2, 0.2, "cm"),
+    legend.key = element_rect(fill = "white", colour = NA), 
+    legend.key.size = unit(1.2, "lines"), 
+    legend.key.height = NULL,
+    legend.key.width = NULL,
+    legend.text = element_text(size = rel(0.8)), 
+    legend.text.align = NULL,
+    legend.title = element_text(hjust = 0),
+    legend.title.align = NULL,
+    legend.position = "right", 
+    legend.direction = NULL,
+    legend.justification = "center", 
+    legend.box = NULL,
+    legend.box.margin = margin(0, 0, 0, 0, "cm"),
+    legend.box.background = element_blank(),
+    legend.box.spacing = unit(0.4, "cm"),
+    
+    panel.background = element_rect(fill = "white", colour = NA),
+    panel.border = element_rect(fill = NA, colour = "grey20"),
+    panel.grid.major = element_line(colour = "grey92"),
+    panel.grid.minor = element_line(colour = "grey92", size = 0.25),
+    panel.spacing = unit(half_line, "pt"),
+    panel.spacing.x = NULL,
+    panel.spacing.y = NULL,
+    panel.ontop = FALSE,
+    
+    strip.background = element_rect(fill = "NA", colour = "NA"),
+    strip.text = element_text(colour = "grey10", size = rel(0.8)),
+    strip.text.x = element_text(margin = margin(t = half_line, b = half_line)),
+    strip.text.y = element_text(angle = 0, margin = margin(l = half_line, r = half_line)),
+    strip.placement = "inside",
+    strip.placement.x = NULL, 
+    strip.placement.y = NULL,
+    strip.switch.pad.grid = unit(0.1, "cm"), 
+    strip.switch.pad.wrap = unit(0.1, "cm"), 
+    
+    plot.background = element_rect(colour = "white"),
+    plot.title = element_text(size = rel(1.2), hjust = 0, vjust = 1, margin = margin(b = half_line * 1.2)),
+    plot.subtitle = element_text(size = rel(0.9), hjust = 0, vjust = 1, margin = margin(b = half_line * 0.9)),
+    plot.caption = element_text(size = rel(0.9), hjust = 1, vjust = 1, margin = margin(t = half_line * 0.9)), 
+    plot.margin = margin(half_line, half_line, half_line, half_line),
+    
+    complete = TRUE)
+}
+
+```
+
+
+# Reading in, Cleaning, and Preparing our data
+```{r 1- Loading and Combining Data, message = FALSE, warning = FALSE}
+#READING IN THE CLEAN DATA
+
+CleanData.Final <- read.csv("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Data/CleanDataFinal.csv")
+
+colnames(CleanData.Final) <- c("x","ParticipantID", "Situacija", "Podsituacija", "Yoking", "TrialNum", "TipBloka", "Blok", "BlokTrial", "ImageSeed", "O\u0161trivsZaobljeni", "Curviness", "Set", "Label", "Location", "CorrectResponse", "RespKey", "RespCorr", "RT", "Generalisation", "TipBloka2" )
+
+#Levels of TrialTYpe and TrialTYpe2
+
+CleanData.Final$TipBloka <- mapvalues(CleanData.Final$TipBloka,
+                                      from = c("Training", "Testing"),
+                                      to = c("Trening", "Test"))
+
+CleanData.Final$TipBloka <- factor(CleanData.Final$TipBloka,
+                            levels= c("Trening", "Test"))
+
+#############
+
+CleanData.Final$TipBloka2 <- mapvalues(CleanData.Final$TipBloka2,
+                                      from = c("Training", "Testing-New", "Testing-Old"),
+                                      to = c("Trening", "Test-novi", "Test-stari"))
+
+CleanData.Final$TipBloka2 <- factor(CleanData.Final$TipBloka2,
+                            levels= c("Trening", "Test-stari", "Test-novi"))
+
+
+
+
+```
+
+
+# The Thesis 
+
+## Part I - Gary Lupyan and the **Cliff of Doom** (Lupyan Replication)
+
+The first step with our data is to start with Lupyan et al. (2007) to see how well we replicate the basic data from that Studija
+
+Our total experiment has many Situacijas, but only Situacija 3 (Konvencionalno Kategorije Label) and Situacija 10 (Bez naziva) are relevant for comparing to the data from Lupyan et al. (2007)
+
+The first thing we need to do is take a look at our own counterbalanced Podsituacijas (3A and 3B) to make sure that they can be collapsed for further data analysis
+
+```{r Exploring and collapsing Situacija 3 Podsituacijas, warning = FALSE}
+
+Exp3Sub <- subset(CleanData.Final, Situacija =="3A"|Situacija == "3B")
+
+Exp3Sub$Situacija <- factor(Exp3Sub$Situacija)
+Exp3Sub$Blok <- factor(Exp3Sub$Blok)
+
+#Aggregating- Note this is only for the graph- we don't aggregate our data for analysis when using family = "binomial" - we model every single data point
+Exp3SubAgg <- summarySE(Exp3Sub, measurevar = "RespCorr", groupvars = c("Situacija", "TipBloka2", "Blok"))
+
+
+afex.Exp3Sub <- mixed(RespCorr ~ Situacija * TipBloka2 + (1|ParticipantID),
+                         data=Exp3Sub,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                         method = 'LRT',
+                         progress=FALSE)
+
+
+#Pretty up results and kick out as kable
+afex.Exp3Sub$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Podsituacija Comparison", ) %>%
+              kable_styling(full_width= F)
+
+pd <- position_dodge(width = 0.1)
+
+ggplot(data=Exp3SubAgg, aes(x=Blok, y=RespCorr, group= Situacija)) +
+  #geom_line(aes(color= Situacija)) +
+  #geom_point(size=1.75, aes(colour = Situacija)) +
+  geom_line(aes(linetype = Situacija), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#000000")) +
+  labs(x="Blok", y="Proporcija ta\U010Dnosti") +
+  scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TipBloka2, scales="free", space= "free_x") +
+  theme_alan() +
+  ggtitle("Replication Performance comparing Podsituacijas of Situacija 3")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Balkan/Konvencionalno Podsituacijas.png", plot = last_plot(), device = NULL, path = NULL,
+  width = 8, height = 4, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+
+#Participants per Podsituacija of Situacija 3
+SubCounts3 <- data.frame(count(Exp3Sub, Situacija))
+SubCounts3$n <- SubCounts3$n/240
+SubCounts3 %>% 
+            knitr::kable(caption = "Number of Participants in Podsituacijas of Experiment 3", ) %>%
+              kable_styling(full_width= F)
+
+```
+
+So above we see no significant effect of Situacija when looking at only Podsituacijas 3A and 3B, and no significant Interakcija of Situacija x Tip bloka. Thus, as we expected, we are justified to collapse these Podsituacijas for further analyses
+
+```{r Importing and modifying data for Lupyan Replication Comparison}
+
+# Subsetting out only the Situacijas for the replication
+ReplicationData2007 <- subset(CleanData.Final, Situacija == 10|Situacija == "3A"|Situacija == "3B")
+
+# Name the levels of Situacija, rather than having them be numbers
+# This also collapses Podsituacijas 3A and 3B (justified above)
+ReplicationData2007$Situacija <- factor(ReplicationData2007$Situacija,
+                            levels= c("3A", "3B", 10),
+                            labels = c("Konvencionalno kategorije","Konvencionalno kategorije","Bez naziva"))
+
+
+#Aggregate our data for plotting
+ReplicationAgg <- summarySE(ReplicationData2007, measurevar = "RespCorr", groupvars = c("Situacija", "TipBloka2", "Blok"))
+
+ReplicationAgg$Blok <- factor(ReplicationAgg$Blok)
+
+#Plot our data
+ggplot(data=ReplicationAgg, aes(x=Blok, y=RespCorr, group= Situacija)) +
+  geom_line(aes(linetype = Situacija), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#000000")) +
+  labs(x="Blok", y="Proporcija ta\U010Dnosti") +
+  scale_y_continuous(limits = c(0.4,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TipBloka2, scales="free", space= "free_x") +
+  theme_alan() +
+  ggtitle("Replication of Lupyan (2017)")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Balkan/Replication 2007.png", plot = last_plot(), device = NULL, path = NULL,
+  width = 8, height = 4, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+```
+
+
+We can also (of course) plot this alongside Gary's data to see how we stack up
+
+```{r Plotting the Replication with the original data, warning= FALSE}
+
+#Reading in Gary's Data
+Lupyan2007 <- read.csv("C:/Users/Alank/Documents/GitHub/Stekic-et-al/RScripts/Lupyan2007Data.csv")
+colnames(Lupyan2007) <- c("Studija", "Situacija", "TipBloka", "Blok", "RespCorr")
+#adding columns we need (filled with NAs) to Gary's data (so the frames can be bound)
+Lupyan2007$N <- NA
+Lupyan2007$sd <- NA
+Lupyan2007$se<- NA
+Lupyan2007$ci <- NA
+
+Lupyan2007$TipBloka <- mapvalues(Lupyan2007$TipBloka,
+                                      from = c("Training", "Testing"),
+                                      to = c("Trening", "Test"))
+
+Lupyan2007$TipBloka <- factor(Lupyan2007$TipBloka,
+                            levels= c("Trening", "Test"))
+
+Lupyan2007$Situacija <- mapvalues(Lupyan2007$Situacija,
+                                      from = c("Conventional Category", "No Label"),
+                                      to = c("Konvencionalno kategorije", "Bez naziva"))
+
+
+
+
+#Adding a "Studija" column to our data
+ReplicationAgg2 <- summarySE(ReplicationData2007, measurevar = "RespCorr", groupvars = c("Situacija", "TipBloka", "Blok"))
+ReplicationAgg2$Studija <- "Stekic et al (2020)"
+
+#Combining the 2 dataframes into 1
+ReplicationAgg2 <- rbind(ReplicationAgg2, Lupyan2007)
+
+ReplicationAgg2$Group <- paste(ReplicationAgg2$Studija, ReplicationAgg2$Situacija)
+ReplicationAgg2$Blok <- factor(ReplicationAgg2$Blok)
+
+#Plotting the Data
+ggplot(data=ReplicationAgg2, aes(x=Blok, y=RespCorr, group= Group)) +
+  geom_line(aes(linetype = Situacija, color = Studija), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color = Studija), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#0066CC", "#CC0033","#33FF00", "#33FF00", "#000000")) +
+  labs(x="Blok", y="Proporcija ta\U010Dnosti") +
+  scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TipBloka, scales="free", space= "free_x") +
+  theme_alan()+
+  ggtitle("Replication Performance split by Tip bloka, comparing our data to Lupyan et al. (2007)")
+
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Balkan/Replication 2007 (Including Lupyan).png", plot = last_plot(), device = NULL, path = NULL,
+  width = 8, height = 4, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+
+```
+
+
+So you can see blah blah blah
+
+Samesies things:
+
+a) Trening for Konvencionalno Kategorije label Situacija looks the same
+b) Overall trend for No-Label Situacijas looks identical
+
+Differencies things:
+c) Lower performance on Bez naziva Situacijas across the board (why?)
+d) TTHE CLIFF OF DOOOOOOOOOOOOOM
+
+Of course we also need to verify what jumps out at us from the graphs statistically, so below is a statistical test for the replication (note we cannot directly compare our results to Lupyan (and to do so wouldn't make sense because different stims), but we can talk about what we find statistically relative to gary)
+
+```{r Replication Statistics}
+
+afex.Replication <- mixed(RespCorr ~ Situacija * TipBloka2 + (1|ParticipantID),
+                         data=ReplicationData2007,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                         method = 'LRT')
+
+
+#Pretty up results and kick out as kable
+afex.Replication$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Mixed Model Results - Replication of Lupyan (2007)", ) %>%
+              kable_styling(full_width= F)
+
+##Fiksni efektis 
+summary(afex.Replication)$coefficients  %>%
+  data.frame() %>%
+    tibble::rownames_to_column(var= "FixedEffect") %>% 
+    mutate(FixedEffect = recode_factor(FixedEffect, 
+                                       `Situacija1` = "Bez naziva",
+                                       `TipBloka21` = "Test - Stari",
+                                       `TipBloka22` = "Test - Novi",
+                                       `Situacija1:TipBloka21` = "Bez naziva x Test - stari",
+                                       `Situacija1:TipBloka22` = "Bez naziva x Test - novi"
+                                       )) %>%
+      `colnames<-`(c("Fiksni efekti", "Beta", "SE", "z", "p")) %>%
+        mutate_if(is.numeric, round, digits = 3) %>% 
+          mutate_at("p", funs(ifelse(.<0.001, "<0.001", .))) %>%
+            knitr::kable(caption = "Word Type Comparison- Fiksni efektis Table", ) %>%
+              kable_styling(full_width= F) %>%
+                pack_rows("Intercept", 1, 1) %>%
+                  pack_rows("Situacija", 2, 2) %>%
+                    pack_rows("Tip bloka", 3, 4)%>%
+                      pack_rows("Interakcija", 5, 6)
+
+
+
+```
+
+So here we see what I think look like sensible results - there is no main effect of Situacija, because it is subsumed by the Interakcija effect (which is where the money is) - Participants who learn a Konvencionalno Kategorije label do better on Trening Trials, but worse on Test Trials (of both types)
+
+## RT Analyses of Replication
+
+```{r RT Analysis for Replication}
+
+
+afex.Replication.RT <- mixed(RT ~ Situacija * TipBloka2 + (1|ParticipantID),
+                         data=ReplicationData2007,
+                         method = 'LRT')
+
+
+#Pretty up results and kick out as kable
+afex.Replication.RT$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Mixed Model Results - Replication of Lupyan (2007)", ) %>%
+              kable_styling(full_width= F)
+
+##Fiksni efektis 
+summary(afex.Replication.RT)$coefficients  %>%
+  data.frame() %>%
+    tibble::rownames_to_column(var= "FixedEffect") %>% 
+    mutate(FixedEffect = recode_factor(FixedEffect, 
+                                       `Situacija1` = "Bez naziva",
+                                       `TipBloka21` = "Test - Stari",
+                                       `TipBloka22` = "Test - Novi",
+                                       `Situacija1:TipBloka21` = "Bez naziva x Test - stari",
+                                       `Situacija1:TipBloka22` = "Bez naziva x Test - novi"
+                                       )) %>%
+      `colnames<-`(c("Fiksni efekti", "Beta", "SE", "df", "t", "p")) %>%
+        mutate_if(is.numeric, round, digits = 3) %>% 
+          mutate_at("p", funs(ifelse(.<0.001, "<0.001", .))) %>%
+            knitr::kable(caption = "Word Type Comparison- Fiksni efektis Table", ) %>%
+              kable_styling(full_width= F) %>%
+                pack_rows("Intercept", 1, 1) %>%
+                  pack_rows("Situacija", 2, 2) %>%
+                    pack_rows("Tip bloka", 3, 4)%>%
+                      pack_rows("Interakcija", 5, 6)
+
+
+ReplicationAggRT <- summarySE(ReplicationData2007, measurevar = "RT", groupvars = c("Situacija", "TipBloka2", "Blok"))
+
+ReplicationAggRT$Blok <- factor(ReplicationAggRT$Blok)
+
+#Plot our data
+ggplot(data=ReplicationAggRT, aes(x=Blok, y=RT, group= Situacija)) +
+  geom_line(aes(linetype = Situacija), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RT - ci, ymax= RT + ci), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#000000")) +
+  labs(x="Blok", y="Vreme kategorizacije (ms)") +
+  #scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TipBloka2, scales="free", space= "free_x") +
+  theme_alan() +
+  ggtitle("Replication of Lupyan (2017)- Vreme kategorizacijes")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Balkan/Replication 2007 - Vreme kategorizacijes.png", plot = last_plot(), device = NULL, path = NULL,
+  width = 8, height = 4, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+
+```
+
+The other thing to look at is the learning trajectory for Trening (i.e. the effect of Blok)
+Previous models were not converging and this I think had to do with "double dipping" the "Blok" values- i.e. mostly a naming thing
+
+
+
+```{r Blok Analysis for Trening}
+
+ReplicationData2007$Blok <- factor(ReplicationData2007$Blok)
+afex.Replication.Blok <- mixed(RespCorr ~ Situacija * Blok + (1|ParticipantID),
+                         data=subset(ReplicationData2007, TipBloka2 == "Trening") ,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                        method = 'LRT')
+
+afex.Replication.Blok$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Mixed Model Results - Replication of Lupyan (2007) - Effect of Blok", ) %>%
+              kable_styling(full_width= F)
+
+
+#Learning Trajectories (effect of Blok)
+##Blok Descriptives
+Replication.Blok <- summarySE(data=subset(ReplicationData2007, TipBloka2 == "Trening"),
+                             measurevar = "RespCorr",
+                             groupvars = "Blok")
+
+##Bloks vs. Chance
+Replication.Blok.vchance <- test(emmeans(afex.Replication.Blok, 
+                    ~as.factor(Blok),
+                    adjust = "none"))
+
+##Bloks vs. Each Other
+
+Replication.Blok.vPairs <- data.frame(pairs(emmeans(afex.Replication.Blok, 
+                    ~Blok,
+                    adjust = "none")))
+
+###Contrasts of Interest
+Contrasts.firstorder <- c("1 - 2", "2 - 3", "3 - 4", "4 - 5", "5 - 6", "6 - 7", "7 - 8", "8 - 9")
+Contrasts.firstorder.vals <- filter(Replication.Blok.vPairs, contrast %in% Contrasts.firstorder)
+Contrasts.firstorder.vals <- rbind(rep(NA, 6), Contrasts.firstorder.vals) #Put in a dummy first row
+
+Contrasts.secondorder <- c("1 - 3", "2 - 4", "3 - 5", "4 - 6", "5 - 7", "6 - 8", "7 - 9")
+Contrasts.secondorder.vals <- filter(Replication.Blok.vPairs, contrast %in% Contrasts.secondorder)
+Contrasts.secondorder.vals <- rbind(rep(NA, 6), rep(NA, 6), Contrasts.secondorder.vals) #Put in a dummy first two rows
+
+
+
+###Creating a single dataframe for Bloks
+Replication.Blok.Combo <- cbind.data.frame (
+  Replication.Blok$Blok, Replication.Blok$RespCorr, 
+ Replication.Blok.vchance$z.ratio,Replication.Blok.vchance$p.value,
+Contrasts.firstorder.vals$z.ratio, Contrasts.firstorder.vals$p.value,
+Contrasts.secondorder.vals$z.ratio, Contrasts.secondorder.vals$p.value
+)
+
+
+###Knitting Blok Table
+Replication.Blok.Combo %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+          `colnames<-`(c("Blok", "Mean",  
+                                "z value", "p value",
+                         "z value ", "p value ",
+                         "z value  ", "p value  "
+                         )) %>%
+              mutate_at(.vars= vars("p value", "p value ", "p value  "), funs(ifelse(.<0.001, "<0.001", .))) %>%
+                knitr::kable(caption = "Replication - Learning Trajectory (Effect of Blok)","html") %>%
+                  kable_styling(full_width= F) %>%
+                add_header_above(c("", "",  "Comparison to Chance" = 2, 
+                               "Comparison to Previous Blok" = 2,
+                                "Comparison to Two Bloks Before" = 2),
+                               font_size = 12)
+
+                
+
+                            
+                            
+```
+
+So looking at the data in this way isn't ultimately as interesting as I had hoped it would be- the post hoc comparisons at least
+
+I think the basic Linear Model Outputs are actually all that we need, but they are maybe a little bit difficult to really describe - and here we actually have both main effects *and* an Interakcija. The Interakcija tells us that performance does not increase over Bloks in the same way for both Situacijas of the experiment, but i'm not certain that this is meaningful - they do seem to follow pretty similar trajectories
+
+SO I"M NOT SURE WHAT TO MAKE OF THAT
+
+# LUPYAN & CASASANTO EXTENSION - Exploring the effect of Ikoni\U010Dnoity on Kategorije Label Learning
+
+```{r Visualising Part II}
+
+# Subsetting out only the Situacijas for the replication
+Part2Data <- subset(CleanData.Final, Situacija == 10|Situacija == "3A"|Situacija == "3B"|Situacija == 1|Situacija == 2)
+
+# Name the levels of Situacija, rather than having them be numbers
+# This also collapses Podsituacijas 3A and 3B (justified above)
+Part2Data$Situacija <- factor(Part2Data$Situacija,
+                            levels= c(10, 1, 2, "3A", "3B"),
+                            labels = c("Bez naziva", "Ikoni\U010Dno (Kategorije)", "Kontra-Ikoni\U010Dno (Kategorije)", "Konvencionalno (Kategorije)",
+                                       "Konvencionalno (Kategorije)"))
+
+#Aggregate our data for plotting
+Part2Agg <- summarySE(Part2Data, measurevar = "RespCorr", groupvars = c("Situacija", "TipBloka2", "Blok"))
+Part2Agg$Blok <- factor(Part2Agg$Blok)
+
+#Plot our data
+ggplot(data=Part2Agg, aes(x=Blok, y=RespCorr, group= Situacija)) +
+  geom_line(aes(linetype = Situacija, color = Situacija), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Situacija), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca")) +
+  scale_linetype_manual(values = c("dashed", rep("solid",3))) +
+  labs(x="Blok", y="Proporcija ta\U010Dnosti") +
+  scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TipBloka2, scales="free", space= "free_x") +
+  theme_alan() +
+  ggtitle("Kategorije Label Comparison")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Balkan/Kategorije Labels.png", plot = last_plot(), device = NULL, path = NULL,
+  width = 8, height = 4, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+```
+
+```{r Part 2 Statistics - Main Effects}
+
+afex.Part2 <- mixed(RespCorr ~ Situacija * TipBloka2 + (1|ParticipantID),
+                         data=Part2Data,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                         method = 'LRT')
+
+
+#Pretty up results and kick out as kable
+afex.Part2$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Mixed Model Results - Part 2", ) %>%
+              kable_styling(full_width= F)
+
+##Fiksni efektis 
+summary(afex.Part2)$coefficients  %>%
+  data.frame() %>%
+    tibble::rownames_to_column(var= "FixedEffect") %>% 
+    mutate(FixedEffect = recode_factor(FixedEffect, 
+                                       `Situacija1` = "Ikoni\U010Dno",
+                                        `Situacija2` = "Kontra-Ikoni\U010Dno",
+                                       `Situacija3` = "Konvencionalno",
+                                       `TipBloka21` = "Test - Stari",
+                                       `TipBloka22` = "Test - Novi",
+                                       `Situacija1:TipBloka21` = "Ikoni\U010Dno x Test - Stari",
+                                       `Situacija2:TipBloka21` = "Kontra-Ikoni\U010Dno x Test - Stari",
+                                       `Situacija3:TipBloka21` = "Konvencionalno x Test - Stari",
+                                       `Situacija1:TipBloka22` = "Ikoni\U010Dno x Test - Novi",
+                                       `Situacija2:TipBloka22` = "Kontra-Ikoni\U010Dno x Test - Novi",
+                                       `Situacija3:TipBloka22` = "Konvencionalno x Test - Novi"
+                                       )) %>%
+      `colnames<-`(c("Fiksni efekti", "Beta", "SE", "z", "p")) %>%
+        mutate_if(is.numeric, round, digits = 3) %>% 
+          mutate_at("p", funs(ifelse(.<0.001, "<0.001", .))) %>%
+            knitr::kable(caption = "Word Type Comparison- Fiksni efektis Table", ) %>%
+              kable_styling(full_width= F) %>%
+                pack_rows("Intercept", 1, 1) %>%
+                  pack_rows("Situacija", 2, 4) %>%
+                    pack_rows("Tip bloka", 5, 6)%>%
+                      pack_rows("Situacija x Tip bloka Interakcijas", 7, 12)
+
+
+
+##Post-Hoc Effect of Situacija
+Part2.Situacija <- summarySE(data=Part2Data,
+                             measurevar = "RespCorr",
+                             groupvars = "Situacija")
+
+Part2.Situacija.EM <- emmeans(afex.Part2, ~Situacija)
+
+##Situacija vs. Chance
+Part2.Situacija.vchance <- test(Part2.Situacija.EM, adjust = "none")
+
+##Situacija vs. Each Other
+Part2.Situacija.vPairs <- data.frame(pairs(Part2.Situacija.EM, adjust = "none" ))
+
+###NoLabel Baseline
+Part2.Situacija.vPairs.1 <- 
+  rbind(rep(NA,6),Part2.Situacija.vPairs[1:3,])
+#Ikoni\U010Dno Baseline
+Part2.Situacija.vPairs.2 <- 
+  rbind(Part2.Situacija.vPairs[1,], rep(NA,6),Part2.Situacija.vPairs[4:5,])
+#Kontra-Ikoni\U010Dno Baseline
+Part2.Situacija.vPairs.3 <- 
+  rbind(Part2.Situacija.vPairs[2,], Part2.Situacija.vPairs[4,], rep(NA,6),Part2.Situacija.vPairs[6,])
+#Konvencionalno Baseline
+Part2.Situacija.vPairs.4 <- 
+  rbind(Part2.Situacija.vPairs[3,],Part2.Situacija.vPairs[5,],Part2.Situacija.vPairs[6,], rep(NA,6))
+
+###Creating a single dataframe for Bloks
+Part2.Situacija.Combo <- cbind.data.frame (
+  Part2.Situacija$Situacija, Part2.Situacija$N, Part2.Situacija$RespCorr, Part2.Situacija$se,
+  Part2.Situacija.vchance$z.ratio,Part2.Situacija.vchance$p.value,
+  Part2.Situacija.vPairs.1$p.value,
+  Part2.Situacija.vPairs.2$p.value,
+  Part2.Situacija.vPairs.3$p.value,
+  Part2.Situacija.vPairs.4$p.value
+)
+
+colnames(Part2.Situacija.Combo) <- c("Situacija", "n", "Mean", "SE", 
+                                "z v chance", "p v chance",
+                                "p v NL",
+                                "p v I",
+                                "p v CI",
+                                "p v Con"
+                                )
+
+###Knitting Situacija Table
+Part2.Situacija.Combo %>%  
+  mutate_if(is.numeric, round, 3) %>%
+    mutate_at(.vars = "z v chance", round, 2)%>%
+    mutate_at(.vars = vars("p v chance", "p v NL", "p v I", "p v CI", "p v Con"),
+        funs(ifelse(.<0.001, "<0.001", .))) %>%
+          knitr::kable(caption = 'Part II- Descriptive Statistics - Situacija', "html") %>%
+            kable_styling(full_width = F) %>%
+              add_header_above(c("", "Descriptive Stats" = 3, "Comparison to Chance" = 2, 
+                     "vs Bez naziva" = 1,
+                     "vs Ikoni\U010Dno" = 1,
+                     "vs Kontra-Ikoni\U010Dno" = 1,
+                     "vs Konvencionalno" = 1),
+                   font_size = 12)
+
+##################################################################################
+
+
+```
+
+We now need post-hoc tests to better pull apart these effects. 
+
+For post hoc tests obviously we don't see anything looking at just a Situacija effect (because there isn't one)
+What you need are post hoc tests of the Interakcija effects
+
+```{r Part 2- Post HOc Interakcijas}
+
+Part2.Interakcija.vPairs <- data.frame(pairs(emmeans(afex.Part2, 
+                    ~Situacija * TipBloka2,
+                    adjust = "none")))
+
+#Trening 
+Part2.Interakcija.vPairs.Trening.1 <-   rbind(rep(NA,6),Part2.Interakcija.vPairs[1:3,])
+Part2.Interakcija.vPairs.Trening.2 <-   rbind(Part2.Interakcija.vPairs[1,], rep(NA, 6), Part2.Interakcija.vPairs[12:13,])
+Part2.Interakcija.vPairs.Trening.3 <-   rbind(Part2.Interakcija.vPairs[2,], Part2.Interakcija.vPairs[12,], rep(NA, 6), Part2.Interakcija.vPairs[22,])
+Part2.Interakcija.vPairs.Trening.4 <-   rbind(Part2.Interakcija.vPairs[3,], Part2.Interakcija.vPairs[13,], Part2.Interakcija.vPairs[22,], rep(NA, 6))
+
+#Test Stari
+Part2.Interakcija.vPairs.TestStari.1 <-   rbind(rep(NA,6),Part2.Interakcija.vPairs[39:41,])
+Part2.Interakcija.vPairs.TestStari.2 <-   rbind(Part2.Interakcija.vPairs[39,], rep(NA, 6), Part2.Interakcija.vPairs[46:47,])
+Part2.Interakcija.vPairs.TestStari.3 <-   rbind(Part2.Interakcija.vPairs[40,], Part2.Interakcija.vPairs[46,], rep(NA, 6),
+                                                 Part2.Interakcija.vPairs[52,])
+Part2.Interakcija.vPairs.TestStari.4 <-   rbind(Part2.Interakcija.vPairs[41,], Part2.Interakcija.vPairs[47,], Part2.Interakcija.vPairs[52,],
+                                                 rep(NA, 6))
+
+#Test Novi
+Part2.Interakcija.vPairs.TestNovi.1 <-   rbind(rep(NA,6),Part2.Interakcija.vPairs[61:63,])
+Part2.Interakcija.vPairs.TestNovi.2 <-   rbind(Part2.Interakcija.vPairs[61,], rep(NA, 6), Part2.Interakcija.vPairs[64:65,])
+Part2.Interakcija.vPairs.TestNovi.3 <-   rbind(Part2.Interakcija.vPairs[62,], Part2.Interakcija.vPairs[64,], rep(NA, 6),
+                                                 Part2.Interakcija.vPairs[66,])
+Part2.Interakcija.vPairs.TestNovi.4 <-   rbind(Part2.Interakcija.vPairs[63,], Part2.Interakcija.vPairs[65,], Part2.Interakcija.vPairs[66,],
+                                                 rep(NA, 6))
+
+# I CAN'T FEEL FEELINGS ANYMORE
+Part2.Interakcija.Combo <- cbind.data.frame (Part2.Situacija.Combo, 
+  Part2.Interakcija.vPairs.Trening.1$p.value,
+  Part2.Interakcija.vPairs.Trening.2$p.value,
+  Part2.Interakcija.vPairs.Trening.3$p.value,
+  Part2.Interakcija.vPairs.Trening.4$p.value,
+  Part2.Interakcija.vPairs.TestStari.1$p.value,
+  Part2.Interakcija.vPairs.TestStari.2$p.value,
+  Part2.Interakcija.vPairs.TestStari.3$p.value,
+  Part2.Interakcija.vPairs.TestStari.4$p.value,
+  Part2.Interakcija.vPairs.TestNovi.1$p.value,
+  Part2.Interakcija.vPairs.TestNovi.2$p.value,
+  Part2.Interakcija.vPairs.TestNovi.3$p.value,
+  Part2.Interakcija.vPairs.TestNovi.4$p.value
+)
+
+colnames(Part2.Interakcija.Combo) <- c("Situacija", "n", "Mean", "SE", 
+                                "z v chance", "p v chance",
+                                "NL (M)", "I (M)", "CI (M)", "Con (M)",
+                                "NL (T)", "I (T)", "CI (T)", "Con (T)",
+                                "NL (O)", "I (O)", "CI (O)", "Con (O)",
+                                "NL (N)", "I (N)", "CI (N)", "Con (N)"
+                                )
+
+Part2.Interakcija.Combo %>%  
+    mutate_if(is.numeric, round, 3) %>%
+    mutate_at(.vars = "z v chance", round, 2)%>%
+    mutate_at(.vars = vars("p v chance",
+                                "NL (M)", "I (M)", "CI (M)", "Con (M)",
+                                "NL (T)", "I (T)", "CI (T)", "Con (T)",
+                                "NL (O)", "I (O)", "CI (O)", "Con (O)",
+                                "NL (N)", "I (N)", "CI (N)", "Con (N)"),
+        funs(ifelse(.<0.001, "<0.001", .))) %>%
+          knitr::kable(caption = 'Part II - Post Hoc Tests - Interakcijas of Situacija x Tip bloka', "html") %>%
+            kable_styling(full_width = F) %>%
+              add_header_above(c("", "Descriptive Stats" = 3, "Comparison to Chance" = 2, 
+                     "vs Bez naziva" = 1, "vs Ikoni\U010Dno" = 1, "vs Kontra-Ikoni\U010Dno" = 1, "vs Konvencionalno" = 1,
+                      "vs Bez naziva" = 1, "vs Ikoni\U010Dno" = 1, "vs Kontra-Ikoni\U010Dno" = 1, "vs Konvencionalno" = 1,
+                     "vs Bez naziva" = 1, "vs Ikoni\U010Dno" = 1, "vs Kontra-Ikoni\U010Dno" = 1, "vs Konvencionalno" = 1,
+                     "vs Bez naziva" = 1, "vs Ikoni\U010Dno" = 1, "vs Kontra-Ikoni\U010Dno" = 1, "vs Konvencionalno" = 1),
+                   font_size = 12)  %>%
+                add_header_above(c(" " = 6,  "Main Effect" = 4, "Trening Trials" = 4, "Test - Stari Trials" = 4, "Test - Novi Trials" = 4), 
+                                 font_size = 14)
+
+
+
+
+```
+
+
+So unfortunately it can't kick that all out as a single viewable table (it's too big - glad I wasted an hour on it!)
+
+But we can kick out parts as individual tables
+
+```{r Part II Post Hoc Tests}
+
+#COMPARISONS OF SituacijaS WITHIN Trening TRIALS
+subset(Part2.Interakcija.Combo, select = c(Situacija, Mean, `NL (T)`, `I (T)`, `CI (T)`, `Con (T)`)) %>%  
+    mutate_if(is.numeric, round, 3) %>%
+    mutate_at(.vars = vars("NL (T)", "I (T)", "CI (T)", "Con (T)"),
+        funs(ifelse(.<0.001, "<0.001", .))) %>%
+          knitr::kable(caption = 'Part II - Post Hoc Comparisons of Situacija within Trening Trials', "html") %>%
+            kable_styling(full_width = F) %>%
+              add_header_above(c(" " = 2, "Post Hoc Comparisons (p values)" = 4),
+                   font_size = 12) 
+
+#COMPARISONS OF SituacijaS WITHIN Test TRIALS
+subset(Part2.Interakcija.Combo, select = c(Situacija, Mean, `NL (O)`, `I (O)`, `CI (O)`, `Con (O)`,
+                                           `NL (N)`, `I (N)`, `CI (N)`, `Con (N)`)) %>%  
+    mutate_if(is.numeric, round, 3) %>%
+    mutate_at(.vars = vars(`NL (O)`, `I (O)`, `CI (O)`, `Con (O)`, `NL (N)`, `I (N)`, `CI (N)`, `Con (N)`),
+        funs(ifelse(.<0.001, "<0.001", .))) %>%
+          knitr::kable(caption = 'Part II - Post Hoc Comparisons of Situacija within Test Trials', "html", booktabs = T) %>%
+            kable_styling(full_width = F) %>%
+              add_header_above(c(" " = 2, "Test - Stari Trials" = 4, "Test - Novi Trials" = 4),
+                   font_size = 12) %>%
+                add_header_above(c(" " = 2,  "Post Hoc Comparisons (p values)" = 8), 
+                                 font_size = 14)
+
+
+```
+Finally something that gives a nice look.
+
+We can see that looking within Trening Trials all of the Situacijas are different from Bez naziva (but not different from each other)
+
+Within the Test Trials however, none of the Situacijas are significantly different from each other - this seems a bit surprising but the variance within Situacijas is larger in Test Trials and the number of trials fewer
+
+
+```{r RT Analysis for PART II}
+afex.Part2.RT <- mixed(RT ~ Situacija * TipBloka2 + (1|ParticipantID),
+                         data=Part2Data,
+                         method = 'LRT')
+
+
+#Pretty up results and kick out as kable
+afex.Part2.RT$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Mixed Model Results - RTs - Part II", ) %>%
+              kable_styling(full_width= F)
+
+##Fiksni efektis 
+summary(afex.Part2.RT)$coefficients  %>%
+  data.frame() %>%
+    tibble::rownames_to_column(var= "FixedEffect") %>% 
+    mutate(FixedEffect = recode_factor(FixedEffect, 
+                                       `Situacija1` = "Ikoni\U010Dno",
+                                        `Situacija2` = "Kontra-Ikoni\U010Dno",
+                                       `Situacija3` = "Konvencionalno",
+                                       `TipBloka21` = "Test - Stari",
+                                       `TipBloka22` = "Test - Novi",
+                                       `Situacija1:TipBloka21` = "Ikoni\U010Dno x Test - Stari",
+                                       `Situacija2:TipBloka21` = "Kontra-Ikoni\U010Dno x Test - Stari",
+                                       `Situacija3:TipBloka21` = "Konvencionalno x Test - Stari",
+                                       `Situacija1:TipBloka22` = "Ikoni\U010Dno x Test - Novi",
+                                       `Situacija2:TipBloka22` = "Kontra-Ikoni\U010Dno x Test - Novi",
+                                       `Situacija3:TipBloka22` = "Konvencionalno x Test - Novi"
+                                       )) %>%
+      `colnames<-`(c("Fiksni efekti", "Beta", "SE", "df", "t", "p")) %>%
+        mutate_if(is.numeric, round, digits = 3) %>% 
+          mutate_at("p", funs(ifelse(.<0.001, "<0.001", .))) %>%
+            knitr::kable(caption = "Word Type Comparison- Fiksni efektis Table - RTs - Part 2", ) %>%
+              kable_styling(full_width= F) %>%
+                pack_rows("Intercept", 1, 1) %>%
+                  pack_rows("Situacija", 2, 4) %>%
+                    pack_rows("Tip bloka", 5, 6)%>%
+                      pack_rows("Situacija x Tip bloka Interakcijas", 7, 12)
+
+
+Part2AggRT <- summarySE(Part2Data, measurevar = "RT", groupvars = c("Situacija", "TipBloka2", "Blok"))
+
+Part2AggRT$Blok <- factor(Part2AggRT$Blok)
+
+#Plot our data
+ggplot(data=Part2AggRT, aes(x=Blok, y=RT, group= Situacija)) +
+  geom_line(aes(linetype = Situacija, color = Situacija), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RT - ci, ymax= RT + ci, color= Situacija), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca")) +
+  scale_linetype_manual(values = c("dashed", rep("solid",3))) +
+  labs(x="Blok", y="Vreme kategorizacije") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TipBloka2, scales="free", space= "free_x") +
+  theme_alan() +
+  ggtitle("Vreme kategorizacije Comparison - Part 2")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Balkan/Vreme kategorizacije - Part 2.png", plot = last_plot(), device = NULL, path = NULL,
+  width = 8, height = 4, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+
+```
+
+There are no RT effects at all, so we don't need to even think about doing post hoc tests
+
+
+```{r Part 2 - Blok Analysis for Trening Trials}
+
+afex.Part2.Blok <- mixed(RespCorr ~ Situacija * Blok + (1|ParticipantID),
+                         data=subset(Part2Data, TipBloka2 == "Trening") ,
+                        method = 'LRT', family = binomial)
+
+afex.Part2.Blok$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Mixed Model Results - Extension of Lupyan & Cassasanto (2014) - Effect of Blok", ) %>%
+              kable_styling(full_width= F)
+
+
+```
+Again these Blok effects are very hard to sensibly interpret
+
+
+# PART 3 - INDIVIDUAL LABELS
+
+To take a look at individual labels we first need to justify the collapsing of Podsituacijas
+
+In this case we want to look at differences between 6A and 6B and between 7, 8 , and 9 (our "Arbitrarno" Situacijas)
+
+```{r Exploring and collapsing Situacija 6 Podsituacijas, warning = FALSE}
+
+Exp6Sub <- subset(CleanData.Final, Situacija =="6A"|Situacija == "6B")
+
+Exp6Sub$Situacija <- factor(Exp6Sub$Situacija)
+Exp6Sub$Blok <- factor(Exp6Sub$Blok)
+
+#Aggregating- Note this is only for the graph- we don't aggregate our data for analysis when using family = "binomial" - we model every single data point
+Exp6SubAgg <- summarySE(Exp6Sub, measurevar = "RespCorr", groupvars = c("Situacija", "TipBloka2", "Blok"))
+
+
+afex.Exp6Sub <- mixed(RespCorr ~ Situacija * TipBloka2 + (1|ParticipantID),
+                         data=Exp6Sub,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                         method = 'LRT',
+                         progress=FALSE)
+
+
+#Pretty up results and kick out as kable
+afex.Exp6Sub$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Podsituacija Comparison (Situacija 6A and 6B)", ) %>%
+              kable_styling(full_width= F)
+
+pd <- position_dodge(width = 0.1)
+
+ggplot(data=Exp6SubAgg, aes(x=Blok, y=RespCorr, group= Situacija)) +
+  #geom_line(aes(color= Situacija)) +
+  #geom_point(size=1.75, aes(colour = Situacija)) +
+  geom_line(aes(linetype = Situacija), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#000000")) +
+  labs(x="Blok", y="Proporcija ta\U010Dnosti") +
+  scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TipBloka2, scales="free", space= "free_x") +
+  theme_alan() +
+  ggtitle("Comparing Podsituacijas of Situacija 6")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Balkan/Konvencionalno Podsituacijas - 6.png", plot = last_plot(), device = NULL, path = NULL,
+  width = 8, height = 4, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+
+#Podsituacija COUNTS
+SubCounts6 <- data.frame(count(Exp6Sub, Situacija))
+SubCounts6$n <- SubCounts6$n/240
+SubCounts6 %>% 
+            knitr::kable(caption = "Number of Participants in Podsituacijas of Experiment 6", ) %>%
+              kable_styling(full_width= F)
+
+```
+
+We have the same Situacija here as with Podsituacijas for Situacija 3. There is no effect during Trening but for whatever reason during Test Trials one of the mappings is **much** better than the other. It's very hard to conceptualize why this would be the case. It *may* suggest that one of the mappings is better than the others - this probably bears mentioning but given that we spend very little time actually discussing the effects on Test Trials (because of the cliff of doom) I'm happy to collapse these
+
+```{r Exploring and collapsing Arbitrarno Situacijas (7,8,9), warning = FALSE}
+
+ArbSub <- subset(CleanData.Final, Situacija ==7|Situacija == 8|Situacija == 9)
+
+ArbSub$Situacija <- factor(ArbSub$Situacija)
+ArbSub$Blok <- factor(ArbSub$Blok)
+
+#Aggregating- Note this is only for the graph- we don't aggregate our data for analysis when using family = "binomial" - we model every single data point
+ArbSubAgg <- summarySE(ArbSub, measurevar = "RespCorr", groupvars = c("Situacija", "TipBloka2", "Blok"))
+
+
+afex.ArgSub <- mixed(RespCorr ~ Situacija * TipBloka2 + (1|ParticipantID),
+                         data=ArbSub,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                         method = 'LRT',
+                         progress=FALSE)
+
+
+#Pretty up results and kick out as kable
+afex.ArgSub$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Arbitrarno Situacija Comparison (Situacijas 7,8,9)", ) %>%
+              kable_styling(full_width= F)
+
+pd <- position_dodge(width = 0.1)
+
+ggplot(data=ArbSubAgg, aes(x=Blok, y=RespCorr, group= Situacija)) +
+  #geom_line(aes(color= Situacija)) +
+  #geom_point(size=1.75, aes(colour = Situacija)) +
+  geom_line(aes(linetype = Situacija), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#0066CC", "#CC0033","#33FF00", "#000000")) +
+  labs(x="Blok", y="Proporcija ta\U010Dnosti") +
+  scale_y_continuous(limits = c(0.45,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TipBloka2, scales="free", space= "free_x") +
+  theme_alan() +
+  ggtitle("Comparing Arbitrarno  6")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Balkan/Arbitrarno Condtions (7,8,9).png", plot = last_plot(), device = NULL, path = NULL,
+  width = 8, height = 4, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+
+#COUNTS
+SubCountsArb <- data.frame(count(ArbSub, Situacija))
+SubCountsArb$n <- SubCountsArb$n/240
+SubCountsArb %>% 
+            knitr::kable(caption = "Number of Participants in Podsituacijas of Experiment 6", ) %>%
+              kable_styling(full_width= F)
+```
+
+The case to collapse these ones is even more clear - there is well and truly no difference between them (and we don't expect one)
+
+Now we can move on to the main analysis of Part III, where we're looking at all the Objekti-Label Situacijas
+
+```{r Visualising Part III}
+
+# Subsetting out only the Situacijas for the replication
+Part3Data <- subset(CleanData.Final, Situacija == 10|Situacija == 4|Situacija == 5|Situacija == "6A"|Situacija == "6B"
+                    |Situacija == 7|Situacija == 8|Situacija == 9)
+
+# Name the levels of Situacija, rather than having them be numbers
+# This also collapses Podsituacijas 3A and 3B (justified above)
+Part3Data$Situacija <- factor(Part3Data$Situacija,
+                            levels= c(10, 4, 5, "6A", "6B", 7, 8, 9),
+                            labels = c("Bez naziva", "Ikoni\U010Dno (Objekti)", "Kontra-Ikoni\U010Dno (Objekti)", "Konvencionalno (Objekti)", "Konvencionalno (Objekti)",
+                                       rep("Arbitrarno",3)))
+
+#Aggregate our data for plotting
+Part3Agg <- summarySE(Part3Data, measurevar = "RespCorr", groupvars = c("Situacija", "TipBloka2", "Blok"))
+Part3Agg$Blok <- factor(Part3Agg$Blok)
+
+#Plot our data
+ggplot(data=Part3Agg, aes(x=Blok, y=RespCorr, group= Situacija)) +
+  geom_line(aes(linetype = Situacija, color = Situacija), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Situacija), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#000000", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  scale_linetype_manual(values = c(rep("dashed",5))) +
+  labs(x="Blok", y="Proporcija ta\U010Dnosti") +
+  scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TipBloka2, scales="free", space= "free_x") +
+  theme_alan() +
+  ggtitle("Individual Label Comparison")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Balkan/Individual Labels.png", plot = last_plot(), device = NULL, path = NULL,
+  width = 8, height = 4, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+```
+
+```{r Part 3 Statistics - Main Effects}
+
+afex.Part3 <- mixed(RespCorr ~ Situacija * TipBloka2 + (1|ParticipantID),
+                         data=Part3Data,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                         method = 'LRT')
+
+
+#Pretty up results and kick out as kable
+afex.Part3$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Mixed Model Results - Part 2", ) %>%
+              kable_styling(full_width= F)
+
+##Fiksni efektis 
+summary(afex.Part3)$coefficients  %>%
+  data.frame() %>%
+    tibble::rownames_to_column(var= "FixedEffect") %>% 
+    mutate(FixedEffect = recode_factor(FixedEffect, 
+                                       `Situacija1` = "Ikoni\U010Dno",
+                                        `Situacija2` = "Kontra-Ikoni\U010Dno",
+                                       `Situacija3` = "Konvencionalno",
+                                       `Situacija4` = "Arbitrarno",
+                                       `TipBloka21` = "Test - Stari",
+                                       `TipBloka22` = "Test - Novi",
+                                       `Situacija1:TipBloka21` = "Ikoni\U010Dno x Test - Stari",
+                                       `Situacija2:TipBloka21` = "Kontra-Ikoni\U010Dno x Test - Stari",
+                                       `Situacija3:TipBloka21` = "Konvencionalno x Test - Stari",
+                                       `Situacija4:TipBloka21` = "Arbitrarno x Test - Stari",
+                                       `Situacija1:TipBloka22` = "Ikoni\U010Dno x Test - Novi",
+                                       `Situacija2:TipBloka22` = "Kontra-Ikoni\U010Dno x Test - Novi",
+                                       `Situacija3:TipBloka22` = "Konvencionalno x Test - Novi", 
+                                       `Situacija4:TipBloka22` = "Arbitrarno x Test - Novi"
+                                       )) %>%
+      `colnames<-`(c("Fiksni efekti", "Beta", "SE", "z", "p")) %>%
+        mutate_if(is.numeric, round, digits = 3) %>% 
+          mutate_at("p", funs(ifelse(.<0.001, "<0.001", .))) %>%
+            knitr::kable(caption = "Word Type Comparison- Fiksni efektis Table", ) %>%
+              kable_styling(full_width= F) %>%
+                pack_rows("Intercept", 1, 1) %>%
+                  pack_rows("Situacija", 2, 5) %>%
+                    pack_rows("Tip bloka", 6, 7)%>%
+                      pack_rows("Situacija x Tip bloka Interakcijas", 8, 15)
+
+
+```
+```{r Part III - Post Hoc Interakcijas}
+
+
+Part3.Interakcija.vPairs <- data.frame(pairs(emmeans(afex.Part3, 
+                    ~Situacija * TipBloka2,
+                    adjust = "none")))
+
+#Trening 
+Part3.Interakcija.vPairs.Trening.1 <-   rbind(rep(NA,6),Part3.Interakcija.vPairs[1:4,])
+Part3.Interakcija.vPairs.Trening.2 <-   rbind(Part3.Interakcija.vPairs[1,], rep(NA, 6), Part3.Interakcija.vPairs[15:17,])
+Part3.Interakcija.vPairs.Trening.3 <-   rbind(Part3.Interakcija.vPairs[2,], Part3.Interakcija.vPairs[15,], rep(NA, 6),
+                                               Part3.Interakcija.vPairs[28:29,])
+Part3.Interakcija.vPairs.Trening.4 <-   rbind(Part3.Interakcija.vPairs[3,], Part3.Interakcija.vPairs[16,], Part3.Interakcija.vPairs[28,], 
+                                               rep(NA, 6), Part3.Interakcija.vPairs[40,])
+Part3.Interakcija.vPairs.Trening.5 <-    rbind(Part3.Interakcija.vPairs[4,], Part3.Interakcija.vPairs[17,], Part3.Interakcija.vPairs[29,], 
+                                               Part3.Interakcija.vPairs[40,], rep(NA, 6))
+
+#Test Stari
+Part3.Interakcija.vPairs.TestStari.1 <-   rbind(rep(NA,6),Part3.Interakcija.vPairs[61:64,])
+Part3.Interakcija.vPairs.TestStari.2 <-   rbind(Part3.Interakcija.vPairs[61,], rep(NA, 6), Part3.Interakcija.vPairs[70:72,])
+Part3.Interakcija.vPairs.TestStari.3 <-   rbind(Part3.Interakcija.vPairs[62,], Part3.Interakcija.vPairs[70,], rep(NA, 6),
+                                               Part3.Interakcija.vPairs[78:79,])
+Part3.Interakcija.vPairs.TestStari.4 <-   rbind(Part3.Interakcija.vPairs[63,], Part3.Interakcija.vPairs[71,], Part3.Interakcija.vPairs[78,], 
+                                               rep(NA, 6), Part3.Interakcija.vPairs[85,])
+Part3.Interakcija.vPairs.TestStari.5 <-    rbind(Part3.Interakcija.vPairs[64,], Part3.Interakcija.vPairs[72,], Part3.Interakcija.vPairs[79,], 
+                                               Part3.Interakcija.vPairs[85,], rep(NA, 6))
+
+#Test Novi
+Part3.Interakcija.vPairs.TestNovi.1 <-   rbind(rep(NA,6),Part3.Interakcija.vPairs[96:99,])
+Part3.Interakcija.vPairs.TestNovi.2 <-   rbind(Part3.Interakcija.vPairs[96,], rep(NA, 6), Part3.Interakcija.vPairs[100:102,])
+Part3.Interakcija.vPairs.TestNovi.3 <-   rbind(Part3.Interakcija.vPairs[97,], Part3.Interakcija.vPairs[100,], rep(NA, 6),
+                                               Part3.Interakcija.vPairs[103:104,])
+Part3.Interakcija.vPairs.TestNovi.4 <-   rbind(Part3.Interakcija.vPairs[98,], Part3.Interakcija.vPairs[101,], Part3.Interakcija.vPairs[103,], 
+                                               rep(NA, 6), Part3.Interakcija.vPairs[105,])
+Part3.Interakcija.vPairs.TestNovi.5 <-    rbind(Part3.Interakcija.vPairs[99,], Part3.Interakcija.vPairs[102,], Part3.Interakcija.vPairs[104,], 
+                                               Part3.Interakcija.vPairs[105,], rep(NA, 6))
+
+#COMPARISONS OF SituacijaS WITHIN Trening TRIALS
+Part3.Interakcija.Trening <- cbind.data.frame(
+  levels(Part3Data$Situacija), #Situacijas
+  as.vector(tapply(subset(Part3Data, TipBloka2 == "Trening")$RespCorr, subset(Part3Data, TipBloka2 == "Trening")$Situacija, mean)), #Means Within Trening 
+  Part3.Interakcija.vPairs.Trening.1$p.value,
+  Part3.Interakcija.vPairs.Trening.2$p.value,
+  Part3.Interakcija.vPairs.Trening.3$p.value,
+  Part3.Interakcija.vPairs.Trening.4$p.value,
+  Part3.Interakcija.vPairs.Trening.5$p.value
+)
+
+Part3.Interakcija.Trening %>% 
+    `colnames<-`(c("Situacija", "Proportion Correct", "v NL", "v I", "v CI", "v Con", "v Arb")) %>%
+    mutate_if(is.numeric, round, 3) %>%
+    mutate_at(.vars = vars("v NL", "v I", "v CI", "v Con", "v Arb"), funs(ifelse(.<0.001, "<0.001", .))) %>%
+          knitr::kable(caption = 'Part III - Post Hoc Comparisons of Situacija within Trening Trials', "html") %>%
+            kable_styling(full_width = F) %>%
+              add_header_above(c(" " = 2, "Post Hoc Comparisons (p values)" = 5),
+                   font_size = 12) 
+
+#COMPARISONS OF SituacijaS WITHIN Test TRIALS
+Part3.Interakcija.Test <- cbind.data.frame(
+  levels(Part3Data$Situacija), #Situacijas
+  as.vector(tapply(subset(Part3Data, TipBloka == "Test")$RespCorr, subset(Part3Data, TipBloka == "Test")$Situacija, mean)), #Means Within Test 
+  Part3.Interakcija.vPairs.TestStari.1$p.value,
+  Part3.Interakcija.vPairs.TestStari.2$p.value,
+  Part3.Interakcija.vPairs.TestStari.3$p.value,
+  Part3.Interakcija.vPairs.TestStari.4$p.value,
+  Part3.Interakcija.vPairs.TestStari.5$p.value,
+  Part3.Interakcija.vPairs.TestNovi.1$p.value,
+  Part3.Interakcija.vPairs.TestNovi.2$p.value,
+  Part3.Interakcija.vPairs.TestNovi.3$p.value,
+  Part3.Interakcija.vPairs.TestNovi.4$p.value,
+  Part3.Interakcija.vPairs.TestNovi.5$p.value
+)
+
+Part3.Interakcija.Test %>% 
+    `colnames<-`(c("Situacija", "Proportion Correct", "v NL (O)", "v I (O)", "v CI (O)", "v Con (O)", "v Arb (O)",
+                   "v NL (N)", "v I (N)", "v CI (N)", "v Con (N)", "v Arb (N)")) %>%
+    mutate_if(is.numeric, round, 3) %>%
+    mutate_at(.vars = vars("v NL (O)", "v I (O)", "v CI (O)", "v Con (O)", "v Arb (O)",
+                   "v NL (N)", "v I (N)", "v CI (N)", "v Con (N)", "v Arb (N)"), funs(ifelse(.<0.001, "<0.001", .))) %>%
+          knitr::kable(caption = 'Part III - Post Hoc Comparisons of Situacija within Test Trials', "html") %>%
+            kable_styling(full_width = F) %>%
+              add_header_above(c(" " = 2, "Test - Stari Trials" = 5, "Test - Novi Trials" = 5),
+                   font_size = 12) %>%
+                add_header_above(c(" " = 2,  "Post Hoc Comparisons (p values)" = 10), 
+                                 font_size = 14)
+
+```
+
+Same story as for Part 2 (above). The Interakcija effect is explained by the fact that the Ikoni\U010Dno, Kontra-Ikoni\U010Dno, and Konvencionalno label learners perform significantly better (but not differently from each other) during Trening trials than participants in the Bez naziva or Arbitrarno Label Situacijas (who do not perform different from each other).
+
+In Test trials, there are no post-hoc differences - (there is a single point but it isn't very interesting) between the Situacijas
+
+
+```{r RT Analysis for PART III}
+afex.Part3.RT <- mixed(RT ~ Situacija * TipBloka2 + (1|ParticipantID),
+                         data=Part3Data,
+                         method = 'LRT')
+
+
+#Pretty up results and kick out as kable
+afex.Part3.RT$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Mixed Model Results - RTs - Part II", ) %>%
+              kable_styling(full_width= F)
+
+##Fiksni efektis 
+summary(afex.Part3.RT)$coefficients  %>%
+  data.frame() %>%
+    tibble::rownames_to_column(var= "FixedEffect") %>% 
+    mutate(FixedEffect = recode_factor(FixedEffect, 
+                                       `Situacija1` = "Ikoni\U010Dno",
+                                        `Situacija2` = "Kontra-Ikoni\U010Dno",
+                                       `Situacija3` = "Konvencionalno",
+                                       `Situacija4` = "Arbitrarno",
+                                       `TipBloka21` = "Test - Stari",
+                                       `TipBloka22` = "Test - Novi",
+                                       `Situacija1:TipBloka21` = "Ikoni\U010Dno x Test - Stari",
+                                       `Situacija2:TipBloka21` = "Kontra-Ikoni\U010Dno x Test - Stari",
+                                       `Situacija3:TipBloka21` = "Konvencionalno x Test - Stari",
+                                       `Situacija4:TipBloka21` = "Arbitrarno x Test - Stari",
+                                       `Situacija1:TipBloka22` = "Ikoni\U010Dno x Test - Novi",
+                                       `Situacija2:TipBloka22` = "Kontra-Ikoni\U010Dno x Test - Novi",
+                                       `Situacija3:TipBloka22` = "Konvencionalno x Test - Novi", 
+                                       `Situacija4:TipBloka22` = "Arbitrarno x Test - Novi"
+                                       )) %>%
+      `colnames<-`(c("Fiksni efekti", "Beta", "SE", "df", "t", "p")) %>%
+        mutate_if(is.numeric, round, digits = 3) %>% 
+          mutate_at("p", funs(ifelse(.<0.001, "<0.001", .))) %>%
+            knitr::kable(caption = "Word Type Comparison- Fiksni efektis Table - RTs - Part 2", ) %>%
+              kable_styling(full_width= F) %>%
+                pack_rows("Intercept", 1, 1) %>%
+                  pack_rows("Situacija", 2, 5) %>%
+                    pack_rows("Tip bloka", 6, 7)%>%
+                      pack_rows("Situacija x Tip bloka Interakcijas", 8, 15)
+
+
+Part3AggRT <- summarySE(Part3Data, measurevar = "RT", groupvars = c("Situacija", "TipBloka2", "Blok"))
+
+Part3AggRT$Blok <- factor(Part3AggRT$Blok)
+
+#Plot our data
+ggplot(data=Part3AggRT, aes(x=Blok, y=RT, group= Situacija)) +
+  geom_line(aes(linetype = Situacija, color = Situacija), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RT - ci, ymax= RT + ci, color= Situacija), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#000000", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  scale_linetype_manual(values = c(rep("dashed",5))) +
+  labs(x="Blok", y="Vreme kategorizacije") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TipBloka2, scales="free", space= "free_x") +
+  theme_alan() +
+  ggtitle("Vreme kategorizacije Comparison - Part 3")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Balkan/Vreme kategorizacije - Part 3.png", plot = last_plot(), device = NULL, path = NULL,
+  width = 8, height = 4, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+
+```
+
+```{r Part 2 - Blok Analysis for Trening Trials}
+
+afex.Part3.Blok <- mixed(RespCorr ~ Situacija * Blok + (1|ParticipantID),
+                         data=subset(Part3Data, TipBloka2 == "Trening") ,
+                        method = 'LRT')
+
+afex.Part3.Blok$anova_table
+
+
+```
+
+
+# PART IV - THE WHOLE SHEBANG
+
+```{r I'ma converge this whole house}
+
+#CHANGED THIS SO WE DON"T HAVE Bez naziva DATA READ IN TWICE
+Part4Data <- rbind(subset(Part2Data, Situacija != "Bez naziva"), Part3Data)
+
+afex.Part4 <- mixed(RespCorr ~ Situacija * TipBloka2 + (1|ParticipantID),
+                         data=Part4Data,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                         method = 'LRT')
+
+afex.Part4$anova_table
+
+
+#Pretty up results and kick out as kable
+afex.Part4$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Mixed Model Results - Part 2", ) %>%
+              kable_styling(full_width= F)
+
+##Fiksni efektis 
+summary(afex.Part4)$coefficients  %>%
+  data.frame() %>%
+    tibble::rownames_to_column(var= "FixedEffect") %>% 
+    mutate(FixedEffect = recode_factor(FixedEffect, 
+                                       `Situacija1` = "Ikoni\U010Dno (Kategorije)",
+                                        `Situacija2` = "Kontra-Ikoni\U010Dno (Kategorije)",
+                                       `Situacija3` = "Konvencionalno (Kategorije)",
+                                       `Situacija4` = "Ikoni\U010Dno (Objekti)",
+                                       `Situacija5` = "Kontra-Ikoni\U010Dno (Objekti)",
+                                       `Situacija6` = "Konvencionalno (Objekti)",
+                                       `Situacija7` = "Arbitrarno",
+                                       `TipBloka21` = "Test - Stari",
+                                       `TipBloka22` = "Test - Novi",
+                                       `Situacija1:TipBloka21` = "Ikoni\U010Dno (Kategorije) x Test - Stari",
+                                       `Situacija2:TipBloka21` = "Kontra-Ikoni\U010Dno (Kategorije) x Test - Stari",
+                                       `Situacija3:TipBloka21` = "Konvencionalno (Kategorije) x Test - Stari",
+                                       `Situacija4:TipBloka21` = "Ikoni\U010Dno (Objekti) x Test - Stari",
+                                       `Situacija5:TipBloka21` = "Kontra-Ikoni\U010Dno (Objekti) x Test - Stari",
+                                       `Situacija6:TipBloka21` = "Konvencionalno (Objekti) x Test - Stari",
+                                       `Situacija7:TipBloka21` = "Arbitrarno x Test - Stari",
+                                       `Situacija1:TipBloka22` = "Ikoni\U010Dno (Kategorije) x Test - Novi",
+                                       `Situacija2:TipBloka22` = "Kontra-Ikoni\U010Dno (Kategorije) x Test - Novi",
+                                       `Situacija3:TipBloka22` = "Konvencionalno (Kategorije) x Test - Novi",
+                                       `Situacija4:TipBloka22` = "Ikoni\U010Dno (Objekti) x Test - Novi",
+                                       `Situacija5:TipBloka22` = "Kontra-Ikoni\U010Dno (Objekti) x Test - Novi",
+                                       `Situacija6:TipBloka22` = "Konvencionalno (Objekti) x Test - Novi",
+                                       `Situacija7:TipBloka22` = "Arbitrarno x Test - Novi"
+                                       )) %>%
+      `colnames<-`(c("Fiksni efekti", "Beta", "SE", "z", "p")) %>%
+        mutate_if(is.numeric, round, digits = 3) %>% 
+          mutate_at("p", funs(ifelse(.<0.001, "<0.001", .))) %>%
+            knitr::kable(caption = "Word Type Comparison- Fiksni efektis Table", ) %>%
+              kable_styling(full_width= F) %>%
+                pack_rows("Intercept", 1, 1) %>%
+                  pack_rows("Situacija", 2, 8) %>%
+                    pack_rows("Tip bloka", 9, 10)%>%
+                      pack_rows("Situacija x Tip bloka Interakcijas", 11, 24)
+
+Part4Agg <- summarySE(Part4Data, measurevar = "RespCorr", groupvars = c("Situacija", "TipBloka2", "Blok"))
+Part4Agg$Blok <- factor(Part4Agg$Blok)
+
+#Plot our data
+ggplot(data=Part4Agg, aes(x=Blok, y=RespCorr, group= Situacija)) +
+  geom_line(aes(linetype = Situacija, color = Situacija), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Situacija), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Blok", y="Proporcija ta\U010Dnosti") +
+  scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TipBloka2, scales="free", space= "free_x") +
+  theme_alan() +
+  ggtitle("Omnibus Comparison")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Balkan/Omnibus Plot (All Situacijas).png", plot = last_plot(), device = NULL, path = NULL,
+  width = 8, height = 4, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+
+
+```
+
+```{r RT Analysis for PART IV}
+afex.Part4.RT <- mixed(RT ~ Situacija * TipBloka2 + (1|ParticipantID),
+                         data=Part4Data,
+                         method = 'LRT')
+
+
+#Pretty up results and kick out as kable
+afex.Part4.RT$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Mixed Model Results - RTs - Part II", ) %>%
+              kable_styling(full_width= F)
+
+##Fiksni efektis 
+summary(afex.Part4.RT)$coefficients  %>%
+  data.frame() %>%
+    tibble::rownames_to_column(var= "FixedEffect") %>% 
+    mutate(FixedEffect = recode_factor(FixedEffect, 
+                                       `Situacija1` = "Ikoni\U010Dno (Kategorije)",
+                                        `Situacija2` = "Kontra-Ikoni\U010Dno (Kategorije)",
+                                       `Situacija3` = "Konvencionalno (Kategorije)",
+                                       `Situacija4` = "Ikoni\U010Dno (Objekti)",
+                                       `Situacija5` = "Kontra-Ikoni\U010Dno (Objekti)",
+                                       `Situacija6` = "Konvencionalno (Objekti)",
+                                       `Situacija7` = "Arbitrarno",
+                                       `TipBloka21` = "Test - Stari",
+                                       `TipBloka22` = "Test - Novi",
+                                       `Situacija1:TipBloka21` = "Ikoni\U010Dno (Kategorije) x Test - Stari",
+                                       `Situacija2:TipBloka21` = "Kontra-Ikoni\U010Dno (Kategorije) x Test - Stari",
+                                       `Situacija3:TipBloka21` = "Konvencionalno (Kategorije) x Test - Stari",
+                                       `Situacija4:TipBloka21` = "Ikoni\U010Dno (Objekti) x Test - Stari",
+                                       `Situacija5:TipBloka21` = "Kontra-Ikoni\U010Dno (Objekti) x Test - Stari",
+                                       `Situacija6:TipBloka21` = "Konvencionalno (Objekti) x Test - Stari",
+                                       `Situacija7:TipBloka21` = "Arbitrarno x Test - Stari",
+                                       `Situacija1:TipBloka22` = "Ikoni\U010Dno (Kategorije) x Test - Novi",
+                                       `Situacija2:TipBloka22` = "Kontra-Ikoni\U010Dno (Kategorije) x Test - Novi",
+                                       `Situacija3:TipBloka22` = "Konvencionalno (Kategorije) x Test - Novi",
+                                       `Situacija4:TipBloka22` = "Ikoni\U010Dno (Objekti) x Test - Novi",
+                                       `Situacija5:TipBloka22` = "Kontra-Ikoni\U010Dno (Objekti) x Test - Novi",
+                                       `Situacija6:TipBloka22` = "Konvencionalno (Objekti) x Test - Novi",
+                                       `Situacija7:TipBloka22` = "Arbitrarno x Test - Novi"
+                                       )) %>%
+      `colnames<-`(c("Fiksni efekti", "Beta", "SE", "df", "t", "p")) %>%
+        mutate_if(is.numeric, round, digits = 3) %>% 
+          mutate_at("p", funs(ifelse(.<0.001, "<0.001", .))) %>%
+            knitr::kable(caption = "Word Type Comparison- Fiksni efektis Table - RTs - Part 2", ) %>%
+              kable_styling(full_width= F) %>%
+                pack_rows("Intercept", 1, 1) %>%
+                  pack_rows("Situacija", 2, 8) %>%
+                    pack_rows("Tip bloka", 9, 10)%>%
+                      pack_rows("Situacija x Tip bloka Interakcijas", 11, 24)
+
+
+Part4AggRT <- summarySE(Part4Data, measurevar = "RT", groupvars = c("Situacija", "TipBloka2", "Blok"))
+
+Part4AggRT$Blok <- factor(Part4AggRT$Blok)
+
+#Plot our data
+ggplot(data=Part4AggRT, aes(x=Blok, y=RT, group= Situacija)) +
+  geom_line(aes(linetype = Situacija, color = Situacija), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RT - ci, ymax= RT + ci, color= Situacija), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Blok", y="Vreme kategorizacije") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TipBloka2, scales="free", space= "free_x") +
+  theme_alan() +
+  ggtitle("Vreme kategorizacije Comparison - Part 4")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Balkan/Vreme kategorizacije - Part 4.png", plot = last_plot(), device = NULL, path = NULL,
+  width = 8, height = 4, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+
+```
+
+We're going to try out a model of Ikoni\U010Dnoity x Systematicity with the data that we do have available, looking only at Trening trials, and see if we can get something to converge
+
+
+```{r A model of Ikoni\U010Dnoity x systematicity}
+
+
+Situacijas <- levels(Part4Data$Situacija)
+
+Part4Data$LabelType <- mapvalues(Part4Data$Situacija,
+                                 from = Situacijas,
+                                 to = c("None", rep("Kategorije", 3), rep("Objekti", 4)))
+
+Part4Data$Systematicity <- mapvalues(Part4Data$Situacija,
+                                 from = Situacijas,
+                                 to = c("None", rep("Non-Systematic", 3), rep("Systematic", 3), "Non-Systematic"))
+
+
+Part4Data$Ikoni\U010Dnoity <- mapvalues(Part4Data$Situacija,
+                                 from = Situacijas,
+                                 to = c("None", "Ikoni\U010Dno", "Kontra-Ikoni\U010Dno", "Konvencionalno" , "Ikoni\U010Dno", "Kontra-Ikoni\U010Dno", 
+                                        "Konvencionalno", "Konvencionalno"))
+
+#Kick out a Crossings Table for the Curly-Brained in the Audience
+Crossings <- cbind.data.frame(Situacijas, 
+                              c("None", rep("Kategorije", 3), rep("Objekti", 4)),
+                              c("None", rep("Non-Systematic", 3), rep("Systematic", 3), "Non-Systematic"),
+                              c("None", "Ikoni\U010Dno", "Kontra-Ikoni\U010Dno", "Konvencionalno" , "Ikoni\U010Dno", "Kontra-Ikoni\U010Dno", 
+                                        "Konvencionalno", "Konvencionalno")
+                              )
+Crossings %>% 
+          `colnames<-`(c("Situacija", "Label Type", "Systematicity", "Ikoni\U010Dnoity")) %>%
+            knitr::kable(caption = "Crossings of Factors", ) %>%
+              kable_styling(full_width= F)
+
+                           
+
+afex.Part4.NoviModel <- mixed(RT ~ LabelType + Systematicity + Ikoni\U010Dnoity + (1|ParticipantID),
+                         data=subset(Part4Data, TipBloka2 == "Trening"),
+                         method = 'LRT')
+
+
+#Pretty up results and kick out as kable
+afex.Part4.NoviModel$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Part 4 - Analysis of Factors", ) %>%
+              kable_styling(full_width= F)
+
+
+
+Part4AggNovi <- summarySE(Part4Data, measurevar = "RespCorr", groupvars = c("LabelType", "Systematicity", "Ikoni\U010Dnoity", "Blok", "Situacija"))
+Part4AggNovi$Blok <- factor(Part4AggNovi$Blok)
+
+#Plot our data
+ggplot(data=Part4AggNovi, aes(x=Blok, y=RespCorr, group= Situacija)) +
+  geom_line(aes(linetype = Systematicity, color = Ikoni\U010Dnoity), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Ikoni\U010Dnoity), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Blok", y="Proporcija ta\U010Dnosti") +
+  scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~LabelType, scales="free", space= "free_x") +
+  theme_alan() +
+  ggtitle("Omnibus Comparison")
+
+```
+
+
+# Alan's Extra Bits and Bobs and Impressive things because he's a super cool guy
+
+## Data Exclusion Table
+
+Lets look at the number of participants who were excluded along the way
+
+```{r Data Exclusion Table}
+
+exclusions <- c("All Data Collected",
+                "NA Response Value", 
+                "Negative RT Values", 
+                "High RT Values",
+                "Spammers",
+                "Cowards/Bravos",
+                "RT Extremes (by Trial)",
+                "Final"
+                )
+
+trialnums <- c(nrow(CleanData), #All Data
+               nrow(CleanData.RespCorr), #NA Participant
+               nrow(CleanData.RTNegCorr), #NEgative RT Values
+               nrow(CleanData2), #High RT Values
+               nrow(CleanData5), #Spammers
+               nrow(CleanData6), #Cowards/Bravos
+               nrow(CleanData.RTTrimmed), #Long Trials
+               nrow(CleanData.Final)
+               )
+
+participantnums <- c(nrow(CleanData)/240, #All Data
+               nrow(CleanData.RespCorr)/240, #NA Participant
+               nrow(CleanData.RTNegCorr)/240, #NEgative RT Values
+               nrow(CleanData2)/240, #High RT Values
+               nrow(CleanData5)/240, #Spammers
+               nrow(CleanData6)/240, #Cowards/Bravos
+               nrow(CleanData6)/240, #Long Trials
+               nrow(CleanData6)/240 #we don't lose participants for the last cut so we use the value from above
+               )
+
+trialscut <- c(NA,
+               nrow(CleanData)- nrow(CleanData.RespCorr), #NA Participant
+               nrow(CleanData.RespCorr) - nrow(CleanData.RTNegCorr), #NEgative RT Values
+               nrow(CleanData.RTNegCorr) - nrow(CleanData2), #High RT Values
+               nrow(CleanData2) - nrow(CleanData5), #Spammers
+               nrow(CleanData5) - nrow(CleanData6), #Cowards/Bravos
+               nrow(CleanData6) - nrow(CleanData.RTTrimmed), #Long Trials
+               NA
+               )
+
+participantscut <- c(NA, #All Data
+               nrow(CleanData)/240 - nrow(CleanData.RespCorr)/240, #NA Participant
+               nrow(CleanData.RespCorr)/240 - nrow(CleanData.RTNegCorr)/240, #NEgative RT Values
+               nrow(CleanData.RTNegCorr)/240 - nrow(CleanData2)/240, #High RT Values
+               nrow(CleanData2)/240 - nrow(CleanData5)/240, #Spammers
+               nrow(CleanData5)/240 - nrow(CleanData6)/240, #Cowards/Bravos
+               NA, #Long Trials
+               NA #we don't lose participants for the last cut so we use the value from above
+               )
+
+
+ExclusionsTable <- cbind.data.frame(exclusions, participantnums, trialnums, participantscut, trialscut)
+
+ExclusionsTable %>%  
+      `colnames<-`(c("Exclusion Criteria", "Participants", "Trials", "Participants Excluded", "Trials Excluded"))%>% 
+      mutate_if(is.numeric, round, digits = 0) %>% 
+            knitr::kable(caption = "Exclusion Table - Participants and Trials Cut by Exclusion Criteria" ) %>%
+              kable_styling(full_width= F)
+
+
+```
+
+
+So there is the exclusion table.
+
+What about the balancing of Situacijas within the retracted samples
+
+```{r Situacija Counts }
+
+exclusions2 <- c("All Data Collected",
+                "NA Response Value", 
+                "Negative RT Values", 
+                "High RT Values",
+                "Spammers",
+                "Cowards/Bravos",
+                "Final"
+                )
+
+participantnums2 <- c(nrow(CleanData)/240, #All Data
+               nrow(CleanData.RespCorr)/240, #NA Participant
+               nrow(CleanData.RTNegCorr)/240, #NEgative RT Values
+               nrow(CleanData2)/240, #High RT Values
+               nrow(CleanData5)/240, #Spammers
+               nrow(CleanData6)/240, #Cowards/Bravos
+               nrow(CleanData6)/240 #we don't lose participants for the last cut so we use the value from above
+               )
+
+
+
+
+AllDataCounts <- CleanData %>%
+   mutate(Situacija2 = 
+      factor(Situacija, levels = c (1,2,"3A", "3B", 4, 5, "6A", "6B", 7, 8, 9, 10),
+                        labels = c("Ikoni\U010Dno (Kategorije)", "Kontra-Ikoni\U010Dno (Kategorije)", "Konvencionalno (Kategorije)", "Konvencionalno (Kategorije)",
+                                  "Ikoni\U010Dno (Objekti)", "Kontra-Ikoni\U010Dno (Objekti)", "Konvencionalno (Objekti)", "Konvencionalno (Objekti)",
+                                  "Arbitrarno", "Arbitrarno", "Arbitrarno",
+                                  "Bez naziva"
+                                  ))) %>%
+        count(Situacija2, sort = FALSE) 
+  
+
+NADataCounts <- CleanData.RespCorr %>%
+   mutate(Situacija2 = 
+      factor(Situacija, levels = c (1,2,"3A", "3B", 4, 5, "6A", "6B", 7, 8, 9, 10),
+                        labels = c("Ikoni\U010Dno (Kategorije)", "Kontra-Ikoni\U010Dno (Kategorije)", "Konvencionalno (Kategorije)", "Konvencionalno (Kategorije)",
+                                  "Ikoni\U010Dno (Objekti)", "Kontra-Ikoni\U010Dno (Objekti)", "Konvencionalno (Objekti)", "Konvencionalno (Objekti)",
+                                  "Arbitrarno", "Arbitrarno", "Arbitrarno",
+                                  "Bez naziva"
+                                  ))) %>%
+        count(Situacija2, sort = FALSE) 
+
+
+NegRTDataCounts <- CleanData.RTNegCorr %>%
+   mutate(Situacija2 = 
+      factor(Situacija, levels = c (1,2,"3A", "3B", 4, 5, "6A", "6B", 7, 8, 9, 10),
+                        labels = c("Ikoni\U010Dno (Kategorije)", "Kontra-Ikoni\U010Dno (Kategorije)", "Konvencionalno (Kategorije)", "Konvencionalno (Kategorije)",
+                                  "Ikoni\U010Dno (Objekti)", "Kontra-Ikoni\U010Dno (Objekti)", "Konvencionalno (Objekti)", "Konvencionalno (Objekti)",
+                                  "Arbitrarno", "Arbitrarno", "Arbitrarno",
+                                  "Bez naziva"
+                                  ))) %>%
+        count(Situacija2, sort = FALSE) 
+
+
+HighRTDataCounts <- CleanData2 %>%
+   mutate(Situacija2 = 
+      factor(Situacija, levels = c (1,2,"3A", "3B", 4, 5, "6A", "6B", 7, 8, 9, 10),
+                        labels = c("Ikoni\U010Dno (Kategorije)", "Kontra-Ikoni\U010Dno (Kategorije)", "Konvencionalno (Kategorije)", "Konvencionalno (Kategorije)",
+                                  "Ikoni\U010Dno (Objekti)", "Kontra-Ikoni\U010Dno (Objekti)", "Konvencionalno (Objekti)", "Konvencionalno (Objekti)",
+                                  "Arbitrarno", "Arbitrarno", "Arbitrarno",
+                                  "Bez naziva"
+                                  ))) %>%
+        count(Situacija2, sort = FALSE) 
+
+SpammersDataCounts <- CleanData5 %>%
+   mutate(Situacija2 = 
+      factor(Situacija, levels = c (1,2,"3A", "3B", 4, 5, "6A", "6B", 7, 8, 9, 10),
+                        labels = c("Ikoni\U010Dno (Kategorije)", "Kontra-Ikoni\U010Dno (Kategorije)", "Konvencionalno (Kategorije)", "Konvencionalno (Kategorije)",
+                                  "Ikoni\U010Dno (Objekti)", "Kontra-Ikoni\U010Dno (Objekti)", "Konvencionalno (Objekti)", "Konvencionalno (Objekti)",
+                                  "Arbitrarno", "Arbitrarno", "Arbitrarno",
+                                  "Bez naziva"
+                                  ))) %>%
+        count(Situacija2, sort = FALSE) 
+
+
+CowardsDataCounts <- CleanData6 %>%
+   mutate(Situacija2 = 
+      factor(Situacija, levels = c (1,2,"3A", "3B", 4, 5, "6A", "6B", 7, 8, 9, 10),
+                        labels = c("Ikoni\U010Dno (Kategorije)", "Kontra-Ikoni\U010Dno (Kategorije)", "Konvencionalno (Kategorije)", "Konvencionalno (Kategorije)",
+                                  "Ikoni\U010Dno (Objekti)", "Kontra-Ikoni\U010Dno (Objekti)", "Konvencionalno (Objekti)", "Konvencionalno (Objekti)",
+                                  "Arbitrarno", "Arbitrarno", "Arbitrarno",
+                                  "Bez naziva"
+                                  ))) %>%
+        count(Situacija2, sort = FALSE) 
+
+
+SituacijaCounts <- rbind.data.frame(AllDataCounts[1:8,]$n/240, NADataCounts$n/240, NegRTDataCounts$n/240,
+                        HighRTDataCounts$n/240, SpammersDataCounts$n/240, CowardsDataCounts$n/240, CowardsDataCounts$n/240) 
+
+SituacijaCountsTable <- cbind.data.frame(exclusions2, participantnums2, SituacijaCounts)
+
+SituacijaCountsTable %>%  
+      `colnames<-`(c("Exclusion Criteria", "Total Participants", 
+                     "Ikoni\U010Dno (Kategorije)", "Kontra-Ikoni\U010Dno (Kategorije)", "Konvencionalno (Kategorije)", 
+                                  "Ikoni\U010Dno (Objekti)", "Kontra-Ikoni\U010Dno (Objekti)", "Konvencionalno (Objekti)", 
+                                  "Arbitrarno",
+                                  "Bez naziva"
+                     ))%>% 
+      mutate_if(is.numeric, round, digits = 0) %>% 
+            knitr::kable(caption = "Exclusion Table - Participants per Situacija at each Exclusion Level" ) %>%
+              kable_styling(full_width= F)
+
+
+```
+
+
+
+Quick check of Podsituacijas by Situacija
+
+```{r Podsituacijas x Situacija}
+
+subcountstable <- data.frame(count(CleanData.Final, Situacija, Podsituacija))
+subcountstable$n <- subcountstable$n/240
+
+subcountstable %>% 
+      `colnames<-`(c("Situacija", "Approach Shape", "n"))%>% 
+      mutate_if(is.numeric, round, digits = 0) %>% 
+            knitr::kable(caption = "Podsituacija Balancing by Situacija" ) %>%
+              kable_styling(full_width= F)
+
+
+
+```
+
+
+Looks good. Groovy. Moving on
+
+## Early Trial Analysis
+
+Lets take a look at the very earliest Trening trials and see if we can recover any benefits for Ikoni\U010Dnoity (this is where we'd expect to find them)
+
+```{r Early Trial Analysis}
+
+#FIRST 4 TRIALS
+OmnibusEarly4 <- subset(Part4Data, TipBloka == "Trening" & TrialNum < 5)
+
+OmnibusEarly4Agg <- summarySE(OmnibusEarly4, measurevar = "RespCorr", groupvars = c("Situacija"))
+
+#Plot our data
+ggplot(data = OmnibusEarly4Agg, aes(x= Situacija, y= RespCorr)) +
+  geom_bar(stat = "summary", fun.y = "mean", aes(fill = Situacija), position = position_dodge(width=0.9)) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Situacija), width= 0.2, size = 1, position=pd)+
+  #scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  #scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Situacija", y="Proporcija ta\U010Dnosti") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  theme_alan() +
+  ggtitle("Early Trial Analysis - First 4 Trials by Situacija")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Balkan/Early Trial Analysis by Situacija.png", plot = last_plot(), device = NULL, path = NULL,
+  width = 12, height = 6, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+
+#FIRST 4 TRIALS BY Ikoni\U010DnoITY (COLLAPSED)
+OmnibusEarly4Agg2 <- summarySE(OmnibusEarly4, measurevar = "RespCorr", groupvars = c("Ikoni\U010Dnoity"))
+
+#Plot our data
+ggplot(data = OmnibusEarly4Agg2, aes(x= Ikoni\U010Dnoity, y= RespCorr)) +
+  geom_bar(stat = "summary", fun.y = "mean", aes(fill = Ikoni\U010Dnoity), position = position_dodge(width=0.9)) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Ikoni\U010Dnoity), width= 0.2, size = 1, position=pd)+
+  #scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  #scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Ikoni\U010Dnoity", y="Proporcija ta\U010Dnosti") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  theme_alan() +
+  ggtitle("Early Trial Analysis - First 4 Trials by Ikoni\U010Dnoity")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Balkan/Early Trial Analysis by Ikoni\U010Dnoity (4 Trials) .png ", plot = last_plot(), device = NULL, path = NULL,
+  width = 12, height = 6, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+
+
+afex.Ikoni\U010Dnoity.Early <- mixed(RespCorr ~ Ikoni\U010Dnoity + (1|ParticipantID),
+                         data=OmnibusEarly4, family = binomial,
+                         method = 'LRT')
+
+
+#Pretty up results and kick out as kable
+afex.Ikoni\U010Dnoity.Early$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Early Trials by Ikoni\U010Dnoity - ANOVA tables", ) %>%
+              kable_styling(full_width= F)
+
+
+summary(afex.Ikoni\U010Dnoity.Early)$coefficients  %>%
+  data.frame() %>%
+    tibble::rownames_to_column(var= "Ikoni\U010Dnoity") %>% 
+    mutate(Ikoni\U010Dnoity = recode_factor(Ikoni\U010Dnoity, 
+                                       `Ikoni\U010Dnoity1` = "Ikoni\U010Dno)",
+                                        `Ikoni\U010Dnoity2` = "Kontra-Ikoni\U010Dno",
+                                       `Ikoni\U010Dnoity3` = "Konvencionalno",
+                                                                           )) %>%
+      `colnames<-`(c("Ikoni\U010Dnoity", "Beta", "SE", "z", "p")) %>%
+        mutate_if(is.numeric, round, digits = 3) %>% 
+          mutate_at("p", funs(ifelse(.<0.001, "<0.001", .))) %>%
+            knitr::kable(caption = "Post Hoc Comparisons of Levels of Ikoni\U010Dnoity in Earliest Trials", ) %>%
+              kable_styling(full_width= F) 
+
+
+```
+
+
+There is always a fine balance here - we want to avoid "p hacking", but there is a tension between the number of trials we'd expect to see an early advantage on, and having an actual sufficient amount of data to make a statistical comparison
+
+For posterity, we'll run this comparison again using just the first 2 trials (highest chance, lowest data) and 8 trials (lower chance, but more data)
+
+
+```{r Early Trials Analysis II}
+#First 2 Trials
+OmnibusEarly2 <- subset(Part4Data, TipBloka == "Trening" & TrialNum < 3)
+
+OmnibusEarly2Agg2 <- summarySE(OmnibusEarly2, measurevar = "RespCorr", groupvars = c("Ikoni\U010Dnoity"))
+
+#Plot our data
+ggplot(data = OmnibusEarly2Agg2, aes(x= Ikoni\U010Dnoity, y= RespCorr)) +
+  geom_bar(stat = "summary", fun.y = "mean", aes(fill = Ikoni\U010Dnoity), position = position_dodge(width=0.9)) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Ikoni\U010Dnoity), width= 0.2, size = 1, position=pd)+
+  #scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  #scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Ikoni\U010Dnoity", y="Proporcija ta\U010Dnosti") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  theme_alan() +
+  ggtitle("Early Trial Analysis - First 2 Trials by Ikoni\U010Dnoity")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Balkan/Early Trial Analysis by Ikoni\U010Dnoity (2 Trials).png", plot = last_plot(), device = NULL, path = NULL,
+  width = 12, height = 6, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+
+
+afex.Ikoni\U010Dnoity.Early2 <- mixed(RespCorr ~ Ikoni\U010Dnoity + (1|ParticipantID),
+                         data=OmnibusEarly2, family = binomial,
+                         method = 'LRT')
+
+
+#Pretty up results and kick out as kable
+afex.Ikoni\U010Dnoity.Early2$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Early Trials by Ikoni\U010Dnoity (2)- ANOVA tables", ) %>%
+              kable_styling(full_width= F)
+
+```
+
+Nothing there. HOw about the first 8
+
+```{r Early Trials Analysis III}
+#First 8 Trials
+OmnibusEarly8 <- subset(Part4Data, TipBloka == "Trening" & TrialNum < 9)
+
+OmnibusEarly8Agg2 <- summarySE(OmnibusEarly8, measurevar = "RespCorr", groupvars = c("Ikoni\U010Dnoity"))
+
+#Plot our data
+ggplot(data = OmnibusEarly8Agg2, aes(x= Ikoni\U010Dnoity, y= RespCorr)) +
+  geom_bar(stat = "summary", fun.y = "mean", aes(fill = Ikoni\U010Dnoity), position = position_dodge(width=0.9)) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Ikoni\U010Dnoity), width= 0.2, size = 1, position=pd)+
+  #scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  #scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Ikoni\U010Dnoity", y="Proporcija ta\U010Dnosti") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  theme_alan() +
+  ggtitle("Early Trial Analysis - First 8 Trials by Ikoni\U010Dnoity")
+
+#GGSAVE
+ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Balkan/Early Trial Analysis by Ikoni\U010Dnoity (8 Trials).png", plot = last_plot(), device = NULL, path = NULL,
+  width = 12, height = 6, units = c("in", "cm", "mm"),
+  dpi = 600)
+
+
+
+afex.Ikoni\U010Dnoity.Early8 <- mixed(RespCorr ~ Ikoni\U010Dnoity + (1|ParticipantID),
+                         data=OmnibusEarly8, family = binomial,
+                         method = 'LRT')
+
+
+#Pretty up results and kick out as kable
+afex.Ikoni\U010Dnoity.Early8$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Early Trials by Ikoni\U010Dnoity (8)- ANOVA tables", ) %>%
+              kable_styling(full_width= F)
+
+```
+
+
+It looks like we start showing an effect here, but I think it's just the main effect of Bez naziva being shit in the Trening trials coming up. There isn't much of a reason to look further into it, other than exploring for the potential intereference effect for Kontra-Ikoni\U010Dno Trials (overall)
+
+Recall that in both my thesis (Nielsen, 2016) and some of Vanja's earlier work there is an interference effect for Kontra-Ikoni\U010Dno languages. They are learned just as well as Ikoni\U010Dno ones, but participants are much slower on them, as if they are intentionally and consciously being forced to reverse their expectations
+
+So we'll quickly take a look at that
+
+```{r Exploration of Interference Effect}
+
+Interference.RT <- summarySE(Part4Data, measurevar = "RT", groupvars = c("Ikoni\U010Dnoity"))
+
+#Plot our data
+ggplot(data = Interference.RT, aes(x= Ikoni\U010Dnoity, y= RT)) +
+  geom_bar(stat = "summary", fun.y = "mean", aes(fill = Ikoni\U010Dnoity), position = position_dodge(width=0.9)) +
+  geom_errorbar(aes(ymin= RT - ci, ymax= RT + ci, color= Ikoni\U010Dnoity), width= 0.2, size = 1, position=pd)+
+  #scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  #scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Ikoni\U010Dnoity", y="Vreme kategorizacije") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  theme_alan() +
+  ggtitle("Vreme kategorizacije Interference Effect")
+
+```
+
+Alan Nielsen, the Patron Saint of Null Results, Strikes again!
+Lets look quickly in early trials (and then cry)
+
+
+```{r Interference Effects - Trening Trials}
+Interference.RT2 <- summarySE(subset(Part4Data, TipBloka == "Trening"), measurevar = "RT", groupvars = c("Ikoni\U010Dnoity"))
+
+#Plot our data
+ggplot(data = Interference.RT2, aes(x= Ikoni\U010Dnoity, y= RT)) +
+  geom_bar(stat = "summary", fun.y = "mean", aes(fill = Ikoni\U010Dnoity), position = position_dodge(width=0.9)) +
+  geom_errorbar(aes(ymin= RT - ci, ymax= RT + ci, color= Ikoni\U010Dnoity), width= 0.2, size = 1, position=pd)+
+  #scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  #scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Ikoni\U010Dnoity", y="Vreme kategorizacije") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  theme_alan() +
+  ggtitle("Vreme kategorizacije Interference Effect (Trening Only)")
+
+
+#And just for shits and giggles, only in the first Blok
+
+Interference.RT3 <- summarySE(subset(Part4Data, TipBloka == "Trening" & Blok == 1), measurevar = "RT", groupvars = c("Ikoni\U010Dnoity"))
+
+#Plot our data
+ggplot(data = Interference.RT3, aes(x= Ikoni\U010Dnoity, y= RT)) +
+  geom_bar(stat = "summary", fun.y = "mean", aes(fill = Ikoni\U010Dnoity), position = position_dodge(width=0.9)) +
+  geom_errorbar(aes(ymin= RT - ci, ymax= RT + ci, color= Ikoni\U010Dnoity), width= 0.2, size = 1, position=pd)+
+  #scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  #scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Ikoni\U010Dnoity", y="Vreme kategorizacije") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  theme_alan() +
+  ggtitle("Vreme kategorizacije Interference Effect (First Blok Only)")
+
+
+```
+
+
+There are a few more things we can do, but before that we're going to look at collapsing our data further so we have a better chance of pulling out some of the interesting effects
+
+## Collapsing within Clusters for Analysis
+
+We know that when we look at the omnibus results we want to be able to make some pretty general points - hence we collapse Podsituacijas and all Arbitrarno Situacijas after looking at them
+
+However, we leave our clusters (i.e. All Kategorije labels) together, despite the fact that we know from our statistical tests that they aren't any different from each other
+
+So lets collapse them for some nice graphs (and to simplify some of the below fiddly analyses)
+
+```{r Parsimonious graphs and stats}
+
+
+CleanData.Parsimonious <- CleanData.Final
+CleanData.Parsimonious$Situacija <- factor(CleanData.Parsimonious$Situacija)
+
+CleanData.Parsimonious$Situacija2 <- factor(mapvalues(CleanData.Parsimonious$Situacija,
+                                 from = as.vector(levels(CleanData.Parsimonious$Situacija)),
+                                 to = c("Kategorije", "Bez naziva", rep("Kategorije",3), rep("Objekti", 4), rep("Arbitrarno", 3))
+                                 ))
+
+
+```
+
+
+## Test Stimuli
+
+In this Studija, as in Lupyan et al. (2007), we have two kinds of stimuli presented in Test Trials - either images that were seen previously, or images of the same type, but unseen (as a test of generalisation). 
+
+However, nowhere in Lupyan et al (2007) is the difference between these types of trials reported (which suggests to me that there we no differences)
+
+Currently we show this split in all of our graphs, but why we do so isn't particularly well motivated. It would certianly be easier for us to show only one Test set in graphs and also to collapse this for statistical analyses, we lets take a look
+
+```{r Justifying Test Type Collapse}
+
+TypeCollapse <- subset(Part4Data, TipBloka2 != "Trening")
+TypeCollapse$TipBloka2 <- factor(TypeCollapse$TipBloka2)
+afex.TypeCollapse <- mixed(RespCorr ~ Situacija * TipBloka2 + (1|ParticipantID),
+                         data=TypeCollapse,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                         method = 'LRT')
+
+#Pretty up results and kick out as kable
+afex.TypeCollapse$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Mixed Model Results - Part 2", ) %>%
+              kable_styling(full_width= F)
+
+
+
+TypeCollapseAgg <- summarySE(TypeCollapse, measurevar = "RespCorr", groupvars = c("Situacija", "TipBloka2", "Blok"))
+
+#Plot our data
+ggplot(data=TypeCollapseAgg, aes(x=Blok, y=RespCorr, group= Situacija)) +
+  geom_line(aes(linetype = Situacija, color = Situacija), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Situacija), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Blok", y="Proporcija ta\U010Dnosti") +
+  scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  facet_grid(~TipBloka2, scales="free", space= "free_x") +
+  theme_alan() +
+  ggtitle("Comparison of Test Types")
+
+
+
+#InterakcijaS
+TypeCollapse.vPairs <- data.frame(pairs(emmeans(afex.TypeCollapse, 
+                    ~Situacija * TipBloka2,
+                    adjust = "none")))
+
+#Comparisons 
+TypeCollapse.EMMeansTable <-   rbind(TypeCollapse.vPairs[8,], #Bez naziva
+                                     TypeCollapse.vPairs[23,], #Icxonic (Kategorije)
+                                     TypeCollapse.vPairs[37,], #Kontra-Ikoni\U010Dno (Kategorije)
+                                     TypeCollapse.vPairs[50,], #Konvencionalno (Kategorije)
+                                     TypeCollapse.vPairs[62,], #Ikoni\U010Dno (Objekti)
+                                     TypeCollapse.vPairs[73,], #Kontra-Ikoni\U010Dno (Objekti)
+                                     TypeCollapse.vPairs[83,], #Konvencionalno (Objekti)
+                                     TypeCollapse.vPairs[92,] #Arbitrarno
+)
+
+
+
+#COMPARISONS OF SituacijaS WITHIN Trening TRIALS
+TypeCollapse.Table <- cbind.data.frame(
+  levels(TypeCollapse$Situacija), #Situacijas
+  as.vector(tapply(subset(TypeCollapse, TipBloka2 == "Test-Stari")$RespCorr, 
+                   subset(TypeCollapse, TipBloka2 == "Test-Stari")$Situacija, mean)), #Starimeans
+  as.vector(tapply(subset(TypeCollapse, TipBloka2 == "Test-Novi")$RespCorr, 
+                   subset(TypeCollapse, TipBloka2 == "Test-Novi")$Situacija, mean)),  #NoviMeans
+  TypeCollapse.EMMeansTable
+)
+
+TypeCollapse.Table %>% 
+    `colnames<-`(c("Situacija", "Mean (Stari Objektis)", "Mean (Novi Objektis)", "Contrast", "Beta", "SE", "df", "z Ratio", "p")) %>%
+    mutate_if(is.numeric, round, 3) %>%
+    mutate_at("p", funs(ifelse(.<0.001, "<0.001", .))) %>%
+    subset(select = -c(Contrast, df)) %>%
+    subset(select = c(Situacija, `Mean (Stari Objektis)`, `Mean (Novi Objektis)`, p, Beta, SE, `z Ratio`))%>%
+          knitr::kable(caption = 'Post Hoc Comparisons of Situacija between Test Types', "html") %>%
+            kable_styling(full_width = F)  
+
+
+
+```
+
+
+
+Hip hip to the hooray - this is exactly what we expected- even though there is a significant main effect of Tip bloka and a significant Interakcija, this post hoc comparison (which we are licensed to make) tells us the only really thing we are interested in: every Situacija other than the Bez naziva Situacija has equal performance on both kinds of Objektis, but in the Bez naziva Situacija performance in the Test trials is better on Stari (familiar) Objektis
+
+
+## Podsituacijas
+
+OUr experimental participants are split into two Podsituacijas giving informattion about which kind of "alien microbes" they should approach - whether they should approach Curvy ones or O\u0161tri ones
+
+We suggested in our OSF that we expect it will be easier to learn to approach Curvy aliens, regardless of labelling Situacija, but would ideally hope that this wasn't a very large effect. Nonetheless, it is one that we should look at
+
+To do this, we're going to use the collapsed "parsimonious" data from above
+
+```{r Podsituacija Exploration}
+CleanData.Parsimonious$Podsituacija <- factor(CleanData.Parsimonious$Podsituacija)
+
+afex.Parsim.SubCond <- mixed(RespCorr ~ Situacija2 * Podsituacija + (1|ParticipantID),
+                         data=CleanData.Parsimonious,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                         method = 'LRT')
+
+#Pretty up results and kick out as kable
+afex.Parsim.SubCond$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Podsituacija Analysis", ) %>%
+              kable_styling(full_width= F)
+
+
+Podsituacija.Parsim.Agg <- summarySE(CleanData.Parsimonious, measurevar = "RespCorr", groupvars = c("Situacija2", "Podsituacija"))
+
+#Plot our data
+ggplot(data = Podsituacija.Parsim.Agg, aes(x= Podsituacija, y= RespCorr)) +
+  geom_bar(stat = "summary", fun.y = "mean", aes(fill = Podsituacija), position = position_dodge(width=0.9)) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Podsituacija), width= 0.2, size = 1, position=pd)+
+  #scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  #scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Ikoni\U010Dnoity", y="Vreme kategorizacije") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  theme_alan() +
+  ggtitle("Comparison of Podsituacijas within Parsimonious Situacijas") +
+    facet_grid(~Situacija2)
+
+
+```
+
+
+So we can see no Interakcija of effects here, just a benefit in accuracy when the rules for Approach are that the explorers should approach Curvy Aliens
+
+Is this something that persists across the entire experiment, or is it an artifact of early trials (i.e. is this swamping the normal early trial benefit that we'd have seen in other studies for Ikoni\U010Dnoity). Lets take a look just within the first Blok of Trening
+
+```{r Early Approach}
+
+CleanData.Parsimonious.Early <- subset(CleanData.Parsimonious, TipBloka == "Trening" & Blok == 1)
+
+afex.Parsim.Early.SubCond <- mixed(RespCorr ~ Situacija2 * Podsituacija + (1|ParticipantID),
+                         data=CleanData.Parsimonious.Early,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                         method = 'LRT')
+
+#Pretty up results and kick out as kable
+afex.Parsim.Early.SubCond$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Podsituacija Analysis (First Blok)", ) %>%
+              kable_styling(full_width= F)
+
+
+Podsituacija.Parsim.Early.Agg <- summarySE(CleanData.Parsimonious.Early, measurevar = "RespCorr", groupvars = c("Situacija2", "Podsituacija"))
+
+#Plot our data
+ggplot(data = Podsituacija.Parsim.Early.Agg, aes(x= Podsituacija, y= RespCorr)) +
+  geom_bar(stat = "summary", fun.y = "mean", aes(fill = Podsituacija), position = position_dodge(width=0.9)) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Podsituacija), width= 0.2, size = 1, position=pd)+
+  #scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  #scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Ikoni\U010Dnoity", y="Vreme kategorizacije") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  theme_alan() +
+  ggtitle("Comparison of Podsituacijas within Parsimonious Situacijas (First Blok Only)") +
+    facet_grid(~Situacija2)
+
+
+
+```
+
+Not a *ton* going on here, but definitely some suggestion that for the Bez naziva Situacija participants might start with a large bias towards approaching Curvy Aliens and then have this bias go away over time (differences in the whole Experiment are much smaller/might not exist in that Situacija). This could be explored further later if we want to, but certainly isn't worth it at this juncture
+
+But speaking of useless things not worth the time to do them - lets make an extra extra prediction - everyone will do better on Test-Novi trials when this rule is congruent (because they will have nothing to fall back on)
+
+```{r Podsituacijas and Novi Objekti Test Trials}
+
+CleanData.Parsimonious.NoviTest <- subset(CleanData.Parsimonious, TipBloka2 == "Test-Novi" & Blok == 1)
+
+afex.Parsim.NoviTest.SubCond <- mixed(RespCorr ~ Situacija2 * Podsituacija + (1|ParticipantID),
+                         data=CleanData.Parsimonious.NoviTest,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                         method = 'LRT')
+
+#Pretty up results and kick out as kable
+afex.Parsim.NoviTest.SubCond$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Podsituacija Analysis (First Blok of Novi Test Objektis)", ) %>%
+              kable_styling(full_width= F)
+
+
+CleanData.Parsimonious.NoviTest.Agg <- summarySE(CleanData.Parsimonious.NoviTest, measurevar = "RespCorr", groupvars = c("Situacija2", "Podsituacija"))
+
+#Plot our data
+ggplot(data = CleanData.Parsimonious.NoviTest.Agg, aes(x= Podsituacija, y= RespCorr)) +
+  geom_bar(stat = "summary", fun.y = "mean", aes(fill = Podsituacija), position = position_dodge(width=0.9)) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Podsituacija), width= 0.2, size = 1, position=pd)+
+  #scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  #scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Ikoni\U010Dnoity", y="Vreme kategorizacije") +
+  #scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  theme_alan() +
+  ggtitle("Comparison of Podsituacijas within Parsimonious Situacijas (First Blok of Test-Novi)") +
+    facet_grid(~Situacija2)
+
+
+
+
+```
+
+
+Sometimes it feels good to be wrong #patronsaintofnullresults
+
+
+## COMPARISON OF BlokS 1, 6 , 9 in Trening TRIALS
+
+```{r Learning Rates and Comparison of Trials}
+Bloks.Data.Trening <- subset(Part4Data, TipBloka2 == "Trening")
+Bloks.Data.Trening <- subset(Bloks.Data.Trening, Blok == 1|Blok == 6|Blok == 9)
+Bloks.Data.Trening$Blok <- as.factor(Bloks.Data.Trening$Blok)
+
+afex.Bloks <- mixed(RespCorr ~ Situacija * Blok + (1|ParticipantID),
+                         data=Bloks.Data.Trening,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                         method = 'LRT')
+
+#Pretty up results and kick out as kable
+afex.Bloks$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Mixed Model Results - Interakcija of Situacija x Blok (Trening Trials)", ) %>%
+              kable_styling(full_width= F)
+
+# POST HOC COMPARISONS (FOR TABLES)
+
+BloksTrening.vPairs <- data.frame(pairs(emmeans(afex.Bloks, 
+                    ~Situacija * Blok,
+                    adjust = "none")))
+
+
+BloksTrening.EMMeansTable.1v6 <-   rbind(BloksTrening.vPairs[8,], #Bez naziva
+                                     BloksTrening.vPairs[31,], #Icxonic (Kategorije)
+                                     BloksTrening.vPairs[53,], #Kontra-Ikoni\U010Dno (Kategorije)
+                                     BloksTrening.vPairs[74,], #Konvencionalno (Kategorije)
+                                     BloksTrening.vPairs[94,], #Ikoni\U010Dno (Objekti)
+                                     BloksTrening.vPairs[113,], #Kontra-Ikoni\U010Dno (Objekti)
+                                     BloksTrening.vPairs[131,], #Konvencionalno (Objekti)
+                                     BloksTrening.vPairs[148,] #Arbitrarno
+)
+
+BloksTrening.EMMeansTable.1v9 <-   rbind(BloksTrening.vPairs[16,], #Bez naziva
+                                     BloksTrening.vPairs[39,], #Icxonic (Kategorije)
+                                     BloksTrening.vPairs[61,], #Kontra-Ikoni\U010Dno (Kategorije)
+                                     BloksTrening.vPairs[82,], #Konvencionalno (Kategorije)
+                                     BloksTrening.vPairs[102,], #Ikoni\U010Dno (Objekti)
+                                     BloksTrening.vPairs[121,], #Kontra-Ikoni\U010Dno (Objekti)
+                                     BloksTrening.vPairs[139,], #Konvencionalno (Objekti)
+                                     BloksTrening.vPairs[156,] #Arbitrarno
+)
+
+BloksTrening.EMMeansTable.6v9 <-   rbind(BloksTrening.vPairs[164,], #Bez naziva
+                                     BloksTrening.vPairs[179,], #Icxonic (Kategorije)
+                                     BloksTrening.vPairs[193,], #Kontra-Ikoni\U010Dno (Kategorije)
+                                     BloksTrening.vPairs[206,], #Konvencionalno (Kategorije)
+                                     BloksTrening.vPairs[218,], #Ikoni\U010Dno (Objekti)
+                                     BloksTrening.vPairs[229,], #Kontra-Ikoni\U010Dno (Objekti)
+                                     BloksTrening.vPairs[239,], #Konvencionalno (Objekti)
+                                     BloksTrening.vPairs[248,] #Arbitrarno
+)
+
+#Comparisons of Bloks 1, 6, and 9 Within Situacijas
+BloksTrening.Table <- cbind.data.frame(
+  levels(Bloks.Data.Trening$Situacija), #Situacijas
+  as.vector(tapply(subset(Bloks.Data.Trening, Blok == "1")$RespCorr, 
+                   subset(Bloks.Data.Trening, Blok == "1")$Situacija, mean)), #Blok 1 Means
+  
+    as.vector(tapply(subset(Bloks.Data.Trening, Blok == "6")$RespCorr, 
+                   subset(Bloks.Data.Trening, Blok == "6")$Situacija, mean)), #Blok 6 Means
+  
+    as.vector(tapply(subset(Bloks.Data.Trening, Blok == "9")$RespCorr, 
+                   subset(Bloks.Data.Trening, Blok == "9")$Situacija, mean)), #Blok 9 Means
+  
+  BloksTrening.EMMeansTable.1v6, #1 vs 6 comparisons
+  BloksTrening.EMMeansTable.1v9,# 1 vs 9 comparisons
+  BloksTrening.EMMeansTable.6v9 #6 vs 9 comparisons
+  )
+
+BloksTrening.Table %>% 
+    `colnames<-`(c("Situacija", "Blok 1", "Blok 2", "Blok 3", 
+                   "Contrast (1v6)", "Beta (1v6)", "SE (1v6)", "df (1v6)", "z Ratio (1v6)", "p (1v6)",
+                   "Contrast (1v9)", "Beta (1v9)", "SE (1v9)", "df (1v9)", "z Ratio (1v9)", "p (1v9)",
+                   "Contrast (6v9)", "Beta (6v9)", "SE (6v9)", "df (6v9)", "z Ratio (6v9)", "p (6v9)"
+                   )) %>%
+    mutate_if(is.numeric, round, 3) %>%
+    mutate_at(.vars = vars("p (1v6)", "p (1v9)", "p (6v9)"), funs(ifelse(.<0.001, "<0.001", .))) %>%
+    subset(select = -c(`Contrast (1v6)`, `df (1v6)`, `Beta (1v6)`,
+                       `Contrast (1v9)`, `df (1v9)`, `Beta (1v9)`,
+                       `Contrast (6v9)`, `df (6v9)`, `Beta (6v9)`
+                       )) %>%
+          knitr::kable(caption = 'Post Hoc Comparisons of Situacija between Bloks 1, 6, and 9', "html") %>%
+            kable_styling(full_width = F)  %>%
+                add_header_above(c("", "Means by Blok" = 3, 
+                               "Blok 1 vs Blok 6" = 3,
+                                "Blok 1 vs Blok 9" = 3,
+                               "Blok 6 vs Blok 9" = 3),
+                               font_size = 12)
+
+
+##COLLAPSE AND PLOT
+Bloks.Data.TreningAgg <- summarySE(Bloks.Data.Trening, measurevar = "RespCorr", groupvars = c("Situacija", "Blok"))
+
+#Plot our data
+ggplot(data=Bloks.Data.TreningAgg, aes(x=Blok, y=RespCorr, group= Situacija)) +
+  geom_line(aes(linetype = Situacija, color = Situacija), size = 1.2, position=pd) +
+  geom_errorbar(aes(ymin= RespCorr - ci, ymax= RespCorr + ci, color= Situacija), width= 0.2, size = 1, position=pd)+
+  scale_color_manual(values= c("#000000", "#007e70","#00b19d", "#00e4ca", "#c144c1","#8b2e8b", "#652165", "gray")) +
+  scale_linetype_manual(values = c("dashed", rep("solid", 3), rep("dashed",4))) +
+  labs(x="Blok", y="Proporcija ta\U010Dnosti") +
+  scale_y_continuous(limits = c(0.40,1), breaks=c(0.5,0.6,0.7,0.8,0.9,1.0)) +
+  theme_alan() +
+  ggtitle("Comparison of Bloks 1, 6, and 9 by Situacija")
+
+```
+
+That's pretty much what we expected/wanted. Everyone gets better between Bloks 1 and 6, only 2 Situacijas (counter Ikoni\U010Dno (Objekti) and Konvencionalno (Objekti) continue to get better between Blok 6 and 9)
+
+
+
+## Comparisons of Bloks within Test Trials
+
+```{r Comparison of Bloks within Test trials}
+
+Bloks.Data.Test <- subset(Part4Data, TipBloka == "Test")
+Bloks.Data.Test$Blok <- as.factor(Bloks.Data.Test$Blok)
+
+afex.Bloks.Test <- mixed(RespCorr ~ Situacija * Blok + (1|ParticipantID),
+                         data=Bloks.Data.Test,
+                         family=binomial,
+                         control=glmerControl(optimizer="bobyqa"),
+                         method = 'LRT')
+
+#Pretty up results and kick out as kable
+afex.Bloks.Test$anova_table %>% 
+  data.frame() %>% 
+    tibble::rownames_to_column(var= "Variable") %>% 
+      mutate_if(is.numeric, round, digits = 3) %>% 
+        mutate_all(funs(ifelse(.<0.001, "<0.001", .))) %>%
+          `colnames<-`(c("Variable", "df", "Chi Sq", "Chi df", "p")) %>%
+            knitr::kable(caption = "Mixed Model Results - Interakcija of Situacija x Blok (Test Trials)", ) %>%
+              kable_styling(full_width= F)
+
+```
+
+Excellent - there is no difference between Test Bloks by Conditino, so we are justified in cutting down on the number of Test Bloks without any real argument
+
+              
+              
+## Studija LENGTH JUSTIFICATION
+
+```{r Studija Length Exploration}
+
+#Find the average length of the Studija (Trials) per participant
+MeanTrial <- mean(subset(CleanData.Final, Situacija == "4"|Situacija == "5"|Situacija == "6A"|Situacija == "6B")$RT) #Mean Trial Length
+TotalTrials <- MeanTrial*240/1000 #Total Length in Seconds
+TotalTrialsMin <- TotalTrials/60
+
+TestLength <- cbind.data.frame(c("Mean Trial Length", "Total Length (s)", "Total Length (M)"), c(MeanTrial, TotalTrials, TotalTrialsMin) )
+
+# Current Length
+TestLength %>% 
+           `colnames<-`(c("", "Current")) %>%
+            knitr::kable(caption = "Experiment Length", ) %>%
+              kable_styling(full_width= F)
+
+
+
+#Tables of Options
+
+OptionsTable <- cbind.data.frame(c("Trials","Length (s)", "Length (M)"),
+                                 c(240, MeanTrial/1000*240, MeanTrial/1000*240/60), #Current Experiment
+                                 c(192, MeanTrial/1000*192, MeanTrial/1000*192/60), #Same Number of test stims (4 Bloks)
+                                 c(168, MeanTrial/1000*168, MeanTrial/1000*168/60), #Same Number of test stims (3 Bloks)
+                                 c(144, MeanTrial/1000*144, MeanTrial/1000*144/60), #Same Number of test stims (2 Bloks)
+                                 c(160, MeanTrial/1000*160, MeanTrial/1000*160/60), #Less test stims (4 Bloks)
+                                 c(144, MeanTrial/1000*144, MeanTrial/1000*144/60), #Less test stims (3 Bloks)
+                                 c(128, MeanTrial/1000*128, MeanTrial/1000*128/60) #Less test stims (2 Bloks)
+  )
+
+OptionsTable %>% 
+           `colnames<-`(c(" ", "Pilot", 
+                          "6/4", "6/3", "6/2",
+                          "6/4 (S)", "6/3 (S)", "6/2 (S)")) %>%
+        mutate_if(is.numeric, round, digits = 0) %>%
+            knitr::kable(caption = "Potential Experiment Lengths (Not Including Instructions)", ) %>%
+              kable_styling(full_width= F) %>%
+                add_header_above(c(" " = 2, "6 Trening Bloks + Normal Test Bloks" = 3, 
+                               "6 Trening Bloks + Short Test Bloks" = 3),
+                               font_size = 12)
+
+
+```
+
+
+
+
+
+
