@@ -34,6 +34,9 @@ jsPsych.plugins['approach-retreat'] = (function(){
     
     console.log(trial.trial_type);
 	// don't show label or play sound if trial label is set to none
+	// update URL
+	window.history.pushState('page_' + trial.trial_type + trial.block_trial, trial.block_trial, trial.trial_type + trial.block_trial);
+	
 	
 	var playStim = true;
 	

@@ -24,8 +24,13 @@
 			var expTimeline = [];
 			
 			var testingUrl, trainingUrl;
+			// for development, use shorter versions of training and testing csvs
+	        testingUrl = "Stimlists/short_versions/1-C-1-1954-1.csv";
+	        trainingUrl = "Stimlists/short_versions/1-C-1-1954-1-Training.csv";
+	        runTrial();
+
 			// php script selects a random CSV from 'unused' directory and moves it to the 'inuse' directory until the trial is complete.
-			var request = $.ajax({
+			/*var request = $.ajax({
 			  url: "trialselector.php", 
 			  method: "GET"
 			});
@@ -43,7 +48,7 @@
 			
 			request.fail(function( jqXHR, textStatus ) {
 			  alert( "Request failed: " + textStatus );
-			});
+			});*/
 			
 			
 			function runTrial() {
