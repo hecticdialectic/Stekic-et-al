@@ -121,7 +121,9 @@ theme_alan <- function(base_size = 12 , base_family = "")
 ## Our data is in two formats because of a change in jsPsych version halfway through our data collection - thus we read those separate data file types (distinguishable by file size) in here separately, then combine them into a single large data frame
 
 #1a - Specify our data folder for R
-setwd("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Data/50s/") 
+setwd("C:/Users/Alan Nielsen/Documents/GitHub/Stekic-et-al/Data/50s/") 
+
+
 
 #1b - Take the names of every file in our directory
 files50  <- list.files(pattern = '\\.csv')
@@ -137,7 +139,7 @@ combined.df.50[] <- lapply(combined.df.50, function(x) gsub("\\\\", "", x))
 
 #1f- Repeat steps a-d for second data folder (files output by original jsPsych before update)
 
-setwd("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Data/40s/") 
+setwd("C:/Users/Alan Nielsen/Documents/GitHub/Stekic-et-al/Data/40s/") 
 files40  <- list.files(pattern = '\\.csv')
 tables40 <- lapply(files40, read.csv, header = TRUE)
 combined.df.40 <- do.call(rbind , tables40)
@@ -182,7 +184,7 @@ combined.df$ParticipantID <- rep(files, each= 246)
 
 
 #2c- Clean up our Data, Get rid of some useless columns, and re-sort the remaining columns into ones we will actually use
-CleanData <- subset(combined.df, select = c("ParticipantID", "Condition", "Subcondition", "Yoking", "TrialNum", "TrialType", "Block", "BlockTrial", "Image", "Label", "Location", "CorrectResponse", "RespKey", "RespCorr", "RT"))
+CleanData <- subset(combined.df, select = c("ParticipantID", "Age", "Gender", "Condition", "Subcondition", "Yoking", "TrialNum", "TrialType", "Block", "BlockTrial", "Image", "Label", "Location", "CorrectResponse", "RespKey", "RespCorr", "RT"))
 
 #2d- Get rid of extra lines from the jsPsych output- leaving us with only our Trial data (everything else of use we've extracted and added as columns)
 CleanData <- subset(CleanData, TrialNum > 0)
@@ -206,7 +208,7 @@ CleanData$RT <- as.numeric(CleanData$RT)
 ```{r 3- Cleaning Data and setting the data up for analysis}
 
 #3a- Clean up our Data, Get rid of some useless columns, and re-sort the remaining columns into ones we will actually use
-CleanData <- subset(combined.df, select = c("ParticipantID", "Condition", "Subcondition", "Yoking", "TrialNum", "TrialType", "Block", "BlockTrial", "Image", "Label", "Location", "CorrectResponse", "RespKey", "RespCorr", "RT"))
+CleanData <- subset(combined.df, select = c("ParticipantID", "Age", "Gender", "Condition", "Subcondition", "Yoking", "TrialNum", "TrialType", "Block", "BlockTrial", "Image", "Label", "Location", "CorrectResponse", "RespKey", "RespCorr", "RT"))
 
 #3b- Get rid of extra lines from the jsPsych output- leaving us with only our Trial data (everything else of use we've extracted and added as columns)
 CleanData <- subset(CleanData, TrialNum > 0)
@@ -299,7 +301,7 @@ for (participant in participants) {
 CleanData2 <- CleanData.HighRTCorr
 
 #Output this clean Data to acsv
-write.csv(CleanData2, file=("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Data/CleanData.csv"))
+write.csv(CleanData2, file=("C:/Users/Alan Nielsen/Documents/GitHub/Stekic-et-al/Data/CleanData.csv"))
 
 # RT Histograms
 
@@ -645,7 +647,7 @@ CleanData4$Image <- sub(".bmp", "", CleanData4$Image)
 
 CleanData.Final <- separate(CleanData4, col=Image, into = c("ImageSeed", "JaggedvsCurved", "Curviness", "Set"), sep = "-")
 
-write.csv(CleanData.Final, file=("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Data/CleanDataFinal.csv"))
+write.csv(CleanData.Final, file=("C:/Users/Alan Nielsen/Documents/GitHub/Stekic-et-al/Data/CleanDataFinal.csv"))
 
 
 ```
@@ -705,7 +707,7 @@ ggplot(data=Exp3SubAgg, aes(x=Block, y=RespCorr, group= Condition)) +
   ggtitle("Replication Performance comparing Subconditions of Condition 3")
 
 #GGSAVE
-ggsave("C:/Users/Alank/Documents/GitHub/Stekic-et-al/Figures/Conventional Subconditions.png", plot = last_plot(), device = NULL, path = NULL,
+ggsave("C:/Users/Alan Nielsen/Documents/GitHub/Stekic-et-al/Figures/Conventional Subconditions.png", plot = last_plot(), device = NULL, path = NULL,
   width = 8, height = 4, units = c("in", "cm", "mm"),
   dpi = 600)
 
@@ -2213,7 +2215,7 @@ Lets take a look at the very earliest Training trials and see if we can recover 
 ```{r Early Trial Analysis}
 
 #FIRST 4 TRIALS
-OmnibusEarly4 <- subset(Part4Data, TrialType == "Training" & TrialNum < 5)
+OmnibusEarly4 <- subset(Exp4Data, TrialNum < 5)
 
 OmnibusEarly4Agg <- summarySE(OmnibusEarly4, measurevar = "RespCorr", groupvars = c("Condition"))
 
@@ -2296,7 +2298,7 @@ For posterity, we'll run this comparison again using just the first 2 trials (hi
 
 ```{r Early Trials Analysis II}
 #First 2 Trials
-OmnibusEarly2 <- subset(Part4Data, TrialType == "Training" & TrialNum < 3)
+OmnibusEarly2 <- subset(Exp4Data, TrialNum < 3)
 
 OmnibusEarly2Agg2 <- summarySE(OmnibusEarly2, measurevar = "RespCorr", groupvars = c("Iconicity"))
 
@@ -2339,7 +2341,7 @@ Nothing there. HOw about the first 8
 
 ```{r Early Trials Analysis III}
 #First 8 Trials
-OmnibusEarly8 <- subset(Part4Data, TrialType == "Training" & TrialNum < 9)
+OmnibusEarly8 <- subset(Exp4Data, TrialNum < 9)
 
 OmnibusEarly8Agg2 <- summarySE(OmnibusEarly8, measurevar = "RespCorr", groupvars = c("Iconicity"))
 
@@ -2387,7 +2389,7 @@ So we'll quickly take a look at that
 
 ```{r Exploration of Interference Effect}
 
-Interference.RT <- summarySE(Part4Data, measurevar = "RT", groupvars = c("Iconicity"))
+Interference.RT <- summarySE(Exp4Data, measurevar = "RT", groupvars = c("Iconicity"))
 
 #Plot our data
 ggplot(data = Interference.RT, aes(x= Iconicity, y= RT)) +
@@ -2407,7 +2409,7 @@ Lets look quickly in early trials (and then cry)
 
 
 ```{r Interference Effects - Training Trials}
-Interference.RT2 <- summarySE(subset(Part4Data, TrialType == "Training"), measurevar = "RT", groupvars = c("Iconicity"))
+Interference.RT2 <- summarySE(subset(Exp4Data, TrialType == "Training"), measurevar = "RT", groupvars = c("Iconicity"))
 
 #Plot our data
 ggplot(data = Interference.RT2, aes(x= Iconicity, y= RT)) +
